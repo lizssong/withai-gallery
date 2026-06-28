@@ -5,12 +5,20 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import ArtistsPage from "./pages/ArtistsPage";
+import ArtistDetailPage from "./pages/ArtistDetailPage";
+import ArtworkViewerPage from "./pages/ArtworkViewerPage";
+import EpiloguePage from "./pages/EpiloguePage";
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/" component={Home} />
+      <Route path="/artists" component={ArtistsPage} />
+      <Route path="/artists/:id/artwork/:artworkId" component={ArtworkViewerPage} />
+      <Route path="/artists/:id" component={ArtistDetailPage} />
+      <Route path="/epilogue" component={EpiloguePage} />
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );

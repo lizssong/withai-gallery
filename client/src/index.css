@@ -206,4 +206,9 @@
   .slide-in-left {
     animation: slideInLeft 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
   }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); opacity: 0.3; }
+    50% { transform: translateY(-12px); opacity: 0.6; }
+  }
 }
