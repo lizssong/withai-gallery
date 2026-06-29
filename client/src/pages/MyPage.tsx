@@ -378,7 +378,7 @@ function ArtworkModal({
                       클릭하여 파일 선택
                     </span>
                     <span style={{ fontSize: "0.55rem", color: "rgba(201,169,110,0.3)", fontFamily: "sans-serif" }}>
-                      JPG, PNG, GIF, MP4, MOV (최대 15MB)
+                      JPG, PNG, GIF, MP4, MOV (최대 50MB)
                     </span>
                   </>
                 )}
@@ -839,22 +839,26 @@ export default function MyPage() {
         setEditingArtwork(null);
       } else {
         // 신규 업로드
-        if (data.mediaFile.size > 15 * 1024 * 1024) { toast.error("파일 크기는 15MB 이하여야 합니다."); return; }
-        setUploadProgress(30);
+        if (data.mediaFile.size > 50 * 1024 * 1024) { toast.error("파일 크기는 50MB 이하여야 합니다."); return; }
+        // 1단계: 파일 읽기 (10%)
+        setUploadProgress(10);
         const mediaBase64 = await fileToBase64(data.mediaFile);
-        setUploadProgress(60);
+        // 2단계: 인코딩 완료 (40%)
+        setUploadProgress(40);
         let thumbnailBase64: string | undefined, thumbnailMime: string | undefined;
         if (data.thumbnailFile) {
           thumbnailBase64 = await fileToBase64(data.thumbnailFile);
-          thumbnailMime = data.thumbnailFile.type;
+          setUploadProgress(55);
         }
-        setUploadProgress(80);
+        // 3단계: 서버 전송 중 (70%)
+        setUploadProgress(70);
         await uploadArtwork.mutateAsync({
           titleKo: data.titleKo, titleEn: data.titleEn, description: data.description,
           year: data.year, medium: data.medium, mediaType: data.mediaType,
           mediaBase64, mediaMime: data.mediaFile.type, thumbnailBase64, thumbnailMime,
           tags: data.tags,
         });
+        // 4단계: 완료 (100%)
         setUploadProgress(100);
         toast.success("작품이 업로드되었습니다!");
         setShowArtworkModal(false);
@@ -992,7 +996,17 @@ export default function MyPage() {
               </span>
             </div>
             <button
-              onClick={() => { if (!profile) { toast.error("먼저 작가 프로필을 등록해 주세요."); return; } setShowArtworkModal(true); }}
+              onClick={() => {
+                if (!profile) {
+                  toast.error("먼저 작가 프로필을 등록해 주세요.", {
+                    description: "위의 '+ 프로필 등록' 버튼을 눌러 작가 정보를 먼저 등록해 주세요.",
+                    action: { label: "프로필 등록", onClick: () => setShowProfileModal(true) },
+                    duration: 5000,
+                  });
+                  return;
+                }
+                setShowArtworkModal(true);
+              }}
               className="transition-all duration-150 active:scale-95 hover:opacity-90"
               style={{
                 background: "linear-gradient(135deg, #c9a96e 0%, #a07840 100%)",
@@ -1033,7 +1047,17 @@ export default function MyPage() {
             </div>
           ) : (
             <div
-              onClick={() => { if (!profile) { toast.error("먼저 작가 프로필을 등록해 주세요."); return; } setShowArtworkModal(true); }}
+              onClick={() => {
+                if (!profile) {
+                  toast.error("먼저 작가 프로필을 등록해 주세요.", {
+                    description: "위의 '+ 프로필 등록' 버튼을 눌러 작가 정보를 먼저 등록해 주세요.",
+                    action: { label: "프로필 등록", onClick: () => setShowProfileModal(true) },
+                    duration: 5000,
+                  });
+                  return;
+                }
+                setShowArtworkModal(true);
+              }}
               className="flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:opacity-80"
               style={{ background: "rgba(30,28,48,0.3)", border: "2px dashed rgba(201,169,110,0.15)", padding: "3rem", textAlign: "center" }}
             >
@@ -1042,7 +1066,7 @@ export default function MyPage() {
                 첫 번째 작품을 업로드해 보세요
               </p>
               <p style={{ fontSize: "0.62rem", color: "rgba(201,169,110,0.25)", fontFamily: "sans-serif" }}>
-                이미지 또는 동영상 (최대 15MB)
+                이미지 또는 동영상 (최대 50MB)
               </p>
             </div>
           )}
