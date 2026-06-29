@@ -210,7 +210,12 @@ export default function AdminPage() {
                       <label style={{ fontSize: "0.55rem", color: "rgba(201,169,110,0.6)", fontFamily: "sans-serif", letterSpacing: "0.1em", display: "block", marginBottom: "4px" }}>{label}</label>
                       <input
                         value={(exForm as any)[key]}
-                        onChange={(e) => setExForm(f => ({ ...f, [key]: e.target.value }))}
+                        onChange={(e) => {
+                          const val = key === 'slug'
+                            ? e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
+                            : e.target.value;
+                          setExForm(f => ({ ...f, [key]: val }));
+                        }}
                         placeholder={placeholder}
                         style={{ width: "100%", background: "rgba(12,10,20,0.6)", border: "1px solid rgba(201,169,110,0.2)", color: "#f0ebe0", padding: "8px 10px", fontSize: "0.72rem", fontFamily: "'Noto Serif KR', serif", outline: "none" }}
                       />
