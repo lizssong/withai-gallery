@@ -13,8 +13,10 @@ import { toast } from "sonner";
 export default function AdminPage() {
   const [, setLocation] = useLocation();
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<"artists" | "artworks">("artists");
+  const [activeTab, setActiveTab] = useState<"artists" | "artworks" | "invitations">("artists");
   const [expandedArtist, setExpandedArtist] = useState<number | null>(null);
+  const [newSlotLabel, setNewSlotLabel] = useState("");
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
 
   const { data: artists, refetch: refetchArtists } = trpc.admin.listAllArtists.useQuery(
     undefined,
@@ -42,6 +44,19 @@ export default function AdminPage() {
 
   const deleteArtworkMutation = trpc.admin.deleteArtwork.useMutation({
     onSuccess: () => { refetchArtworks(); refetchArtists(); toast.success("작품이 삭제되었습니다."); },
+    onError: () => toast.error("삭제에 실패했습니다."),
+  });
+
+  const { data: invitations, refetch: refetchInvitations } = trpc.invitation.list.useQuery(
+    undefined,
+    { enabled: user?.role === "admin" && activeTab === "invitations" }
+  );
+  const createInviteMutation = trpc.invitation.create.useMutation({
+    onSuccess: () => { refetchInvitations(); setNewSlotLabel(""); setIsCreatingInvite(false); toast.success("초대 링크가 생성되었습니다!"); },
+    onError: () => toast.error("초대 링크 생성에 실패했습니다."),
+  });
+  const deleteInviteMutation = trpc.invitation.delete.useMutation({
+    onSuccess: () => { refetchInvitations(); toast.success("초대 링크가 삭제되었습니다."); },
     onError: () => toast.error("삭제에 실패했습니다."),
   });
 
@@ -108,7 +123,7 @@ export default function AdminPage() {
 
         {/* 탭 */}
         <div className="flex gap-0 mb-6" style={{ borderBottom: "1px solid rgba(201,169,110,0.15)" }}>
-          {(["artists", "artworks"] as const).map((tab) => (
+          {(["artists", "artworks", "invitations"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -125,7 +140,7 @@ export default function AdminPage() {
                 marginBottom: "-1px",
               }}
             >
-              {tab === "artists" ? "작가 관리" : "작품 관리"}
+              {tab === "artists" ? "작가 관리" : tab === "artworks" ? "작품 관리" : "초대 링크"}
             </button>
           ))}
         </div>
@@ -276,6 +291,121 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* 초대 링크 탭 */}
+        {activeTab === "invitations" && (
+          <div>
+            {/* 새 초대 링크 생성 */}
+            <div className="mb-6" style={{ background: "rgba(30,28,48,0.7)", border: "1px solid rgba(201,169,110,0.15)", padding: "1.25rem 1.5rem" }}>
+              <p className="gallery-caption mb-3" style={{ fontSize: "0.48rem", color: "#c9a96e", letterSpacing: "0.2em" }}>NEW INVITATION</p>
+              {isCreatingInvite ? (
+                <div className="flex gap-3 items-center flex-wrap">
+                  <input
+                    type="text"
+                    value={newSlotLabel}
+                    onChange={e => setNewSlotLabel(e.target.value)}
+                    placeholder="작가 슬롯 이름 (예: 작가 1번 — 홍길동)"
+                    className="flex-1"
+                    style={{ background: "rgba(12,10,20,0.6)", border: "1px solid rgba(201,169,110,0.25)", color: "#f0ebe0", padding: "6px 12px", fontSize: "0.75rem", fontFamily: "'Noto Serif KR', serif", outline: "none", minWidth: "200px" }}
+                  />
+                  <button
+                    onClick={() => { if (newSlotLabel.trim()) createInviteMutation.mutate({ slotLabel: newSlotLabel.trim() }); }}
+                    disabled={!newSlotLabel.trim() || createInviteMutation.isPending}
+                    className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
+                    style={{ background: "rgba(201,169,110,0.15)", border: "1px solid rgba(201,169,110,0.4)", color: "#c9a96e", padding: "6px 16px", fontSize: "0.48rem", letterSpacing: "0.15em", cursor: "pointer" }}
+                  >
+                    {createInviteMutation.isPending ? "...": "생성"}
+                  </button>
+                  <button
+                    onClick={() => setIsCreatingInvite(false)}
+                    className="gallery-caption transition-all duration-200 hover:opacity-60"
+                    style={{ background: "none", border: "none", color: "rgba(240,235,224,0.3)", fontSize: "0.48rem", letterSpacing: "0.1em", cursor: "pointer" }}
+                  >
+                    취소
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsCreatingInvite(true)}
+                  className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
+                  style={{ background: "none", border: "1px solid rgba(201,169,110,0.3)", color: "rgba(201,169,110,0.7)", padding: "6px 16px", fontSize: "0.48rem", letterSpacing: "0.15em", cursor: "pointer" }}
+                >
+                  + 초대 링크 생성
+                </button>
+              )}
+            </div>
+
+            {/* 초대 링크 목록 */}
+            {!invitations || invitations.length === 0 ? (
+              <p className="text-center py-12" style={{ color: "rgba(240,235,224,0.3)", fontFamily: "'Noto Serif KR', serif", fontSize: "0.8rem" }}>
+                생성된 초대 링크가 없습니다.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {invitations.map((inv) => {
+                  const inviteUrl = `${window.location.origin}/invite/${inv.token}`;
+                  return (
+                    <motion.div
+                      key={inv.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{ background: "rgba(30,28,48,0.7)", border: `1px solid ${inv.isUsed ? "rgba(201,169,110,0.08)" : "rgba(201,169,110,0.2)"}`, padding: "1rem 1.25rem" }}
+                    >
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className="gallery-caption"
+                              style={{ fontSize: "0.4rem", letterSpacing: "0.12em", padding: "2px 6px", background: inv.isUsed ? "rgba(120,120,120,0.15)" : "rgba(201,169,110,0.12)", color: inv.isUsed ? "rgba(240,235,224,0.3)" : "#c9a96e", border: `1px solid ${inv.isUsed ? "rgba(120,120,120,0.2)" : "rgba(201,169,110,0.3)"}` }}
+                            >
+                              {inv.isUsed ? "USED" : "ACTIVE"}
+                            </span>
+                            <p className="gallery-title" style={{ fontSize: "0.85rem", color: inv.isUsed ? "rgba(240,235,224,0.4)" : "#f0ebe0" }}>{inv.slotLabel}</p>
+                          </div>
+                          <p
+                            className="gallery-caption"
+                            style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.4)", letterSpacing: "0.05em", wordBreak: "break-all" }}
+                          >
+                            {inviteUrl}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 items-center flex-shrink-0">
+                          {!inv.isUsed && (
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(inviteUrl); toast.success("초대 링크가 복사되었습니다!"); }}
+                              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
+                              style={{ background: "rgba(201,169,110,0.1)", border: "1px solid rgba(201,169,110,0.3)", color: "#c9a96e", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}
+                            >
+                              봅사
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { if (confirm("이 초대 링크를 삭제하시겠습니까?")) deleteInviteMutation.mutate({ id: inv.id }); }}
+                            className="gallery-caption transition-all duration-200 hover:opacity-80"
+                            style={{ background: "none", border: "1px solid rgba(192,57,43,0.3)", color: "rgba(192,57,43,0.6)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 사용 안내 */}
+            <div className="mt-8 p-4" style={{ background: "rgba(201,169,110,0.04)", border: "1px solid rgba(201,169,110,0.1)" }}>
+              <p className="gallery-caption mb-2" style={{ fontSize: "0.45rem", color: "#c9a96e", letterSpacing: "0.2em" }}>HOW TO INVITE</p>
+              <ol style={{ paddingLeft: "1.2rem", color: "rgba(240,235,224,0.5)", fontFamily: "'Noto Serif KR', serif", fontSize: "0.72rem", lineHeight: 2 }}>
+                <li>"초대 링크 생성" 버튼으로 작가별 초대 링크를 만듭니다.</li>
+                <li>"복사" 버튼으로 링크를 복사해 작가에게 카카오톡 등으로 전송합니다.</li>
+                <li>작가가 링크를 클릭하면 Manus 로그인 후 자동으로 작가 등록이 완료됩니다.</li>
+                <li>등록 후 마이페이지에서 프로필과 작품을 업로드할 수 있습니다.</li>
+              </ol>
+            </div>
           </div>
         )}
       </div>

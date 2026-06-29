@@ -9,7 +9,11 @@ import {
   getAllArtists, getAllArtistsAdmin, getAllArtworks, getArtistById, getArtistByUserId,
   getArtworkById, getArtworksByArtistId, updateArtist, updateArtwork,
   getArtworkCountsByArtistIds,
+  createInvitation, getAllInvitations, getInvitationByToken, markInvitationUsed, deleteInvitation,
+  getLikeCount, hasLiked, addLike, removeLike,
+  getCommentsByArtworkId, addComment, deleteComment, hideComment,
 } from "./db";
+import { nanoid } from "nanoid";
 import { storagePut } from "./storage";
 
 async function uploadBase64(base64: string, mimeType: string, folder: string) {
@@ -32,8 +36,14 @@ const galleryRouter = router({
     if (!a) throw new TRPCError({ code: "NOT_FOUND" });
     return a;
   }),
-  listArtworks: publicProcedure.input(z.object({ artistId: z.number() })).query(({ input }) =>
-    getArtworksByArtistId(input.artistId, true)),
+  listArtworks: publicProcedure.input(z.object({ artistId: z.number() })).query(async ({ input }) => {
+    const artworks = await getArtworksByArtistId(input.artistId, true);
+    // 좋아요 수 집계
+    const withLikes = await Promise.all(
+      artworks.map(async (w) => ({ ...w, likeCount: await getLikeCount(w.id) }))
+    );
+    return withLikes;
+  }),
   getArtwork: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
     const w = await getArtworkById(input.id);
     if (!w) throw new TRPCError({ code: "NOT_FOUND" });
@@ -42,7 +52,10 @@ const galleryRouter = router({
 });
 
 const artistRouter = router({
-  myProfile: protectedProcedure.query(({ ctx }) => getArtistByUserId(ctx.user.id)),
+  myProfile: protectedProcedure.query(async ({ ctx }) => {
+    const result = await getArtistByUserId(ctx.user.id);
+    return result ?? null;
+  }),
   myArtworks: protectedProcedure.query(async ({ ctx }) => {
     const a = await getArtistByUserId(ctx.user.id);
     if (!a) return [];
@@ -166,6 +179,110 @@ const adminRouter = router({
   }),
 });
 
+// ── Invitation Router ──────────────────────────────────────────────────────────────────────
+const invitationRouter = router({
+  /** 관리자: 초대 링크 생성 */
+  create: adminProcedure.input(z.object({
+    slotLabel: z.string().min(1),
+    expiresAt: z.date().optional(),
+  })).mutation(async ({ input }) => {
+    const token = nanoid(32);
+    return createInvitation({ token, slotLabel: input.slotLabel, expiresAt: input.expiresAt });
+  }),
+  /** 관리자: 전체 초대 링크 목록 */
+  list: adminProcedure.query(() => getAllInvitations()),
+  /** 관리자: 초대 링크 삭제 */
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    await deleteInvitation(input.id);
+    return { success: true };
+  }),
+  /** 작가: 초대 토큰 유효성 확인 */
+  verify: publicProcedure.input(z.object({ token: z.string() })).query(async ({ input }) => {
+    const inv = await getInvitationByToken(input.token);
+    if (!inv) throw new TRPCError({ code: "NOT_FOUND", message: "유효하지 않은 초대 링크입니다." });
+    if (inv.isUsed) throw new TRPCError({ code: "CONFLICT", message: "이미 사용된 초대 링크입니다." });
+    if (inv.expiresAt && inv.expiresAt < new Date()) throw new TRPCError({ code: "FORBIDDEN", message: "만료된 초대 링크입니다." });
+    return inv;
+  }),
+  /** 작가: 초대 토큰으로 작가 등록 (= 마이페이지 작가 프로필 생성 후 토큰 연결) */
+  accept: protectedProcedure.input(z.object({ token: z.string() })).mutation(async ({ ctx, input }) => {
+    const inv = await getInvitationByToken(input.token);
+    if (!inv) throw new TRPCError({ code: "NOT_FOUND", message: "유효하지 않은 초대 링크입니다." });
+    if (inv.isUsed) throw new TRPCError({ code: "CONFLICT", message: "이미 사용된 초대 링크입니다." });
+    if (inv.expiresAt && inv.expiresAt < new Date()) throw new TRPCError({ code: "FORBIDDEN", message: "만료된 초대 링크입니다." });
+    // 작가 프로필이 없으면 자동 생성
+    let artist = await getArtistByUserId(ctx.user.id);
+    if (!artist) {
+      artist = await createArtist({
+        userId: ctx.user.id,
+        name: ctx.user.name ?? "작가",
+        nameEn: "",
+        isPublished: false,
+      });
+    }
+    await markInvitationUsed(input.token, artist!.id);
+    return { success: true, artistId: artist!.id };
+  }),
+});
+
+// ── Like Router ───────────────────────────────────────────────────────────────────────────
+const likeRouter = router({
+  /** 작품 좋아요 수 + 내가 눈렀는지 */
+  status: publicProcedure.input(z.object({
+    artworkId: z.number(),
+    fingerprint: z.string(),
+  })).query(async ({ ctx, input }) => {
+    const count = await getLikeCount(input.artworkId);
+    const liked = await hasLiked(input.artworkId, ctx.user?.id ?? null, input.fingerprint);
+    return { count, liked };
+  }),
+  /** 좋아요 토글 */
+  toggle: publicProcedure.input(z.object({
+    artworkId: z.number(),
+    fingerprint: z.string(),
+  })).mutation(async ({ ctx, input }) => {
+    const userId = ctx.user?.id ?? null;
+    const already = await hasLiked(input.artworkId, userId, input.fingerprint);
+    if (already) {
+      await removeLike(input.artworkId, userId, input.fingerprint);
+    } else {
+      await addLike({ artworkId: input.artworkId, userId, fingerprint: input.fingerprint });
+    }
+    const count = await getLikeCount(input.artworkId);
+    return { liked: !already, count };
+  }),
+});
+
+// ── Comment Router ─────────────────────────────────────────────────────────────────────
+const commentRouter = router({
+  /** 작품 감상 댓글 목록 */
+  list: publicProcedure.input(z.object({ artworkId: z.number() })).query(({ input }) =>
+    getCommentsByArtworkId(input.artworkId)),
+  /** 댓글 작성 (비로그인도 닉네임 입력 후 가능) */
+  add: publicProcedure.input(z.object({
+    artworkId: z.number(),
+    content: z.string().min(1).max(500),
+    guestName: z.string().max(30).optional(),
+  })).mutation(async ({ ctx, input }) => {
+    if (input.content.trim().length === 0) throw new TRPCError({ code: "BAD_REQUEST" });
+    return addComment({
+      artworkId: input.artworkId,
+      userId: ctx.user?.id ?? null,
+      guestName: ctx.user ? (ctx.user.name ?? undefined) : (input.guestName ?? "익명의 관람객"),
+      content: input.content.trim(),
+    });
+  }),
+  /** 댓글 삭제 (본인 또는 관리자) */
+  delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+    if (ctx.user.role === "admin") {
+      await deleteComment(input.id);
+    } else {
+      await hideComment(input.id);
+    }
+    return { success: true };
+  }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -179,6 +296,9 @@ export const appRouter = router({
   gallery: galleryRouter,
   artist: artistRouter,
   admin: adminRouter,
+  invitation: invitationRouter,
+  like: likeRouter,
+  comment: commentRouter,
 });
 
 export type AppRouter = typeof appRouter;

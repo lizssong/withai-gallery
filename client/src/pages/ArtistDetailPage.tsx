@@ -239,9 +239,17 @@ export default function ArtistDetailPage() {
                     )}
                   </div>
                   <div className="p-3">
-                    <h3 className="gallery-title mb-0.5" style={{ fontSize: "0.95rem", color: "#f0ebe0" }}>
-                      {artwork.titleKo}
-                    </h3>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="gallery-title mb-0.5" style={{ fontSize: "0.95rem", color: "#f0ebe0", flex: 1 }}>
+                        {artwork.titleKo}
+                      </h3>
+                      {/* 좋아요 수 배지 */}
+                      {artwork.likeCount != null && artwork.likeCount > 0 && (
+                        <span className="gallery-caption flex items-center gap-0.5" style={{ fontSize: "0.42rem", color: "rgba(192,57,43,0.7)", background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.2)", padding: "2px 7px", flexShrink: 0, letterSpacing: "0.05em" }}>
+                          ♥ {artwork.likeCount}
+                        </span>
+                      )}
+                    </div>
                     <p className="gallery-caption mb-2" style={{ fontSize: "0.45rem", color: "rgba(201,169,110,0.6)", letterSpacing: "0.12em" }}>
                       {(artwork.titleEn ?? '').toUpperCase()}
                     </p>

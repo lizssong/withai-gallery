@@ -1,6 +1,11 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { artists, artworks, InsertArtist, InsertArtwork, InsertUser, users } from "../drizzle/schema";
+import {
+  artists, artworks, artworkComments, artworkLikes,
+  invitations,
+  InsertArtist, InsertArtwork, InsertArtworkComment, InsertArtworkLike, InsertInvitation,
+  InsertUser, users
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -196,4 +201,105 @@ export async function getArtworkCountsByArtistIds(artistIds: number[]): Promise<
     if (row.artistId !== null) result[row.artistId] = Number(row.count);
   }
   return result;
+}
+
+// ── Invitations ───────────────────────────────────────────────────────────────────────
+export async function createInvitation(data: InsertInvitation) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.insert(invitations).values(data);
+  const result = await db.select().from(invitations).where(eq(invitations.token, data.token)).limit(1);
+  return result[0];
+}
+
+export async function getAllInvitations() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(invitations).orderBy(desc(invitations.createdAt));
+}
+
+export async function getInvitationByToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(invitations).where(eq(invitations.token, token)).limit(1);
+  return result[0];
+}
+
+export async function markInvitationUsed(token: string, artistId: number) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.update(invitations).set({ isUsed: true, artistId }).where(eq(invitations.token, token));
+}
+
+export async function deleteInvitation(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.delete(invitations).where(eq(invitations.id, id));
+}
+
+// ── ArtworkLikes ──────────────────────────────────────────────────────────────────────
+export async function getLikeCount(artworkId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db
+    .select({ count: sql<number>`count(*) as count` })
+    .from(artworkLikes)
+    .where(eq(artworkLikes.artworkId, artworkId));
+  return Number(rows[0]?.count ?? 0);
+}
+
+export async function hasLiked(artworkId: number, userId: number | null, fingerprint: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const condition = userId
+    ? and(eq(artworkLikes.artworkId, artworkId), eq(artworkLikes.userId, userId))
+    : and(eq(artworkLikes.artworkId, artworkId), eq(artworkLikes.fingerprint, fingerprint));
+  const rows = await db.select().from(artworkLikes).where(condition).limit(1);
+  return rows.length > 0;
+}
+
+export async function addLike(data: InsertArtworkLike) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.insert(artworkLikes).values(data);
+}
+
+export async function removeLike(artworkId: number, userId: number | null, fingerprint: string) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  const condition = userId
+    ? and(eq(artworkLikes.artworkId, artworkId), eq(artworkLikes.userId, userId))
+    : and(eq(artworkLikes.artworkId, artworkId), eq(artworkLikes.fingerprint, fingerprint));
+  await db.delete(artworkLikes).where(condition);
+}
+
+// ── ArtworkComments ──────────────────────────────────────────────────────────────────
+export async function getCommentsByArtworkId(artworkId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(artworkComments)
+    .where(and(eq(artworkComments.artworkId, artworkId), eq(artworkComments.isHidden, false)))
+    .orderBy(asc(artworkComments.createdAt));
+}
+
+export async function addComment(data: InsertArtworkComment) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.insert(artworkComments).values(data);
+  const all = await db.select().from(artworkComments).where(eq(artworkComments.artworkId, data.artworkId)).orderBy(desc(artworkComments.createdAt));
+  return all[0];
+}
+
+export async function deleteComment(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.delete(artworkComments).where(eq(artworkComments.id, id));
+}
+
+export async function hideComment(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.update(artworkComments).set({ isHidden: true }).where(eq(artworkComments.id, id));
 }

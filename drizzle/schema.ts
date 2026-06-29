@@ -78,3 +78,52 @@ export const artworks = mysqlTable("artworks", {
 
 export type Artwork = typeof artworks.$inferSelect;
 export type InsertArtwork = typeof artworks.$inferInsert;
+
+// ── Invitations (작가 초대 링크) ────────────────────────────────────────────
+export const invitations = mysqlTable("invitations", {
+  id: int("id").autoincrement().primaryKey(),
+  /** 작가 슬롯 식별자 (이 토큰으로 등록 시 해당 슬롯에 작가 프로필 연결) */
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  /** 슬롯 이름 (예: 작가 1번, 작가 2번) — 관리자가 지정 */
+  slotLabel: varchar("slotLabel", { length: 100 }).notNull().default(""),
+  /** 사용 여부 */
+  isUsed: boolean("isUsed").default(false).notNull(),
+  /** 수락 시 연결된 작가 ID */
+  artistId: int("artistId"),
+  /** 만료 시간 (null = 무제한) */
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Invitation = typeof invitations.$inferSelect;
+export type InsertInvitation = typeof invitations.$inferInsert;
+
+// ── ArtworkLikes (작품 좋아요) ───────────────────────────────────────────
+export const artworkLikes = mysqlTable("artworkLikes", {
+  id: int("id").autoincrement().primaryKey(),
+  artworkId: int("artworkId").notNull(),
+  /** 로그인 사용자 ID (비로그인은 null) */
+  userId: int("userId"),
+  /** 비로그인 중복 방지용 fingerprint (IP + UA 해시) */
+  fingerprint: varchar("fingerprint", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ArtworkLike = typeof artworkLikes.$inferSelect;
+export type InsertArtworkLike = typeof artworkLikes.$inferInsert;
+
+// ── ArtworkComments (작품 감상 댓글) ─────────────────────────────────────
+export const artworkComments = mysqlTable("artworkComments", {
+  id: int("id").autoincrement().primaryKey(),
+  artworkId: int("artworkId").notNull(),
+  /** 로그인 사용자 ID */
+  userId: int("userId"),
+  /** 비로그인 닉네임 */
+  guestName: varchar("guestName", { length: 50 }),
+  content: text("content").notNull(),
+  isHidden: boolean("isHidden").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ArtworkComment = typeof artworkComments.$inferSelect;
+export type InsertArtworkComment = typeof artworkComments.$inferInsert;
