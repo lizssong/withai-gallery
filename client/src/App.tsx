@@ -9,8 +9,9 @@ import ArtistsPage from "./pages/ArtistsPage";
 import ArtistDetailPage from "./pages/ArtistDetailPage";
 import ArtworkViewerPage from "./pages/ArtworkViewerPage";
 import EpiloguePage from "./pages/EpiloguePage";
-
+import MyPage from "./pages/MyPage";
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/artists/:id/artwork/:artworkId" component={ArtworkViewerPage} />
       <Route path="/artists/:id" component={ArtistDetailPage} />
       <Route path="/epilogue" component={EpiloguePage} />
+      <Route path="/my" component={MyPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

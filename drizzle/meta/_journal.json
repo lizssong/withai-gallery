@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1782723276356,
+      "tag": "0000_aspiring_toad_men",
+      "breakpoints": true
+    }
+  ]
+}

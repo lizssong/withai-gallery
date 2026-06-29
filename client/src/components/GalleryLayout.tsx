@@ -4,6 +4,8 @@
  */
 import { useEffect, useRef, useState, useCallback, createContext, useContext } from "react";
 import { Link, useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { getLoginUrl } from "@/const";
 
 const BGM_URL = "/manus-storage/gallery-bgm_b9e12943.mp3";
 
@@ -123,8 +125,9 @@ export function GalleryHeader() {
         <NavLink href="/epilogue" label="에필로그" active={location === "/epilogue"} />
       </nav>
 
-      {/* 우측: BGM + 시즌 */}
+      {/* 우측: BGM + 마이페이지 + 시즌 */}
       <div className="flex items-center gap-3">
+        <AuthButton location={location} />
         {isPlaying && (
           <button
             onClick={toggleMute}
@@ -149,6 +152,65 @@ export function GalleryHeader() {
         </span>
       </div>
     </header>
+  );
+}
+
+// ── AuthButton ───────────────────────────────────────────────────────────────
+function AuthButton({ location }: { location: string }) {
+  const { data: user } = trpc.auth.me.useQuery();
+  const logout = trpc.auth.logout.useMutation({
+    onSuccess: () => window.location.href = "/",
+  });
+
+  if (user) {
+    return (
+      <div className="flex items-center gap-2">
+        <Link
+          href="/my"
+          className="gallery-caption transition-all duration-200 no-underline"
+          style={{
+            fontSize: "0.5rem",
+            letterSpacing: "0.15em",
+            color: location === "/my" ? "#c9a96e" : "rgba(240,235,224,0.5)",
+            borderBottom: location === "/my" ? "1px solid rgba(201,169,110,0.5)" : "1px solid transparent",
+            paddingBottom: "2px",
+          }}
+        >
+          MY
+        </Link>
+        <button
+          onClick={() => logout.mutate()}
+          className="gallery-caption transition-all duration-200 hover:opacity-70"
+          style={{
+            background: "none",
+            border: "none",
+            fontSize: "0.5rem",
+            letterSpacing: "0.15em",
+            color: "rgba(240,235,224,0.35)",
+            cursor: "pointer",
+            paddingBottom: "2px",
+          }}
+        >
+          LOGOUT
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={getLoginUrl()}
+      className="gallery-caption transition-all duration-200 no-underline hover:opacity-80"
+      style={{
+        fontSize: "0.5rem",
+        letterSpacing: "0.15em",
+        color: "rgba(240,235,224,0.45)",
+        border: "1px solid rgba(201,169,110,0.2)",
+        padding: "3px 8px",
+      }}
+    >
+      LOGIN
+    </a>
   );
 }
 
