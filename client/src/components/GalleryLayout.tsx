@@ -121,6 +121,7 @@ export function GalleryHeader() {
 
       {/* 중앙 네비게이션 */}
       <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-5">
+        <NavLink href="/exhibitions" label="전시회" active={location.startsWith("/exhibition")} />
         <NavLink href="/artists" label="작가" active={location.startsWith("/artists")} />
         <NavLink href="/epilogue" label="에필로그" active={location === "/epilogue"} />
       </nav>
