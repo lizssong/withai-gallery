@@ -241,6 +241,51 @@ export default function EpiloguePage() {
           </div>
         </motion.div>
 
+        {/* 공유 버튼 */}
+        <motion.div
+          className="text-center mb-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+        >
+          <p className="gallery-caption mb-4" style={{ fontSize: "0.5rem", color: "#c9a96e", letterSpacing: "0.25em" }}>SHARE</p>
+          <div className="flex justify-center gap-3 flex-wrap">
+            {/* 링크 복사 */}
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.origin);
+                const btn = document.getElementById('copy-btn');
+                if (btn) { btn.textContent = '✓ 복사됨'; setTimeout(() => { btn.textContent = '🔗 링크 복사'; }, 2000); }
+              }}
+              id="copy-btn"
+              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
+              style={{ background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.25)", color: "rgba(201,169,110,0.8)", padding: "8px 16px", fontSize: "0.5rem", letterSpacing: "0.12em", cursor: "pointer" }}
+            >
+              🔗 링크 복사
+            </button>
+            {/* 카카오톡 공유 */}
+            <a
+              href={`https://sharer.kakao.com/talk/friends/picker/link?app_key=KAKAO_APP_KEY&validation_action=default&validation_params=%7B%22url%22%3A%22${encodeURIComponent(window.location.origin)}%22%7D`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95 no-underline"
+              style={{ background: "rgba(254,229,0,0.12)", border: "1px solid rgba(254,229,0,0.25)", color: "rgba(254,229,0,0.8)", padding: "8px 16px", fontSize: "0.5rem", letterSpacing: "0.12em", cursor: "pointer", display: "inline-block" }}
+            >
+              💬 카카오 공유
+            </a>
+            {/* X(트위터) 공유 */}
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('AI 아트 컬렉티브 2025 — 10인의 작가가 AI와 함께 그려낸 상상과 감성의 세계 🎨')}&url=${encodeURIComponent(window.location.origin)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95 no-underline"
+              style={{ background: "rgba(29,161,242,0.1)", border: "1px solid rgba(29,161,242,0.25)", color: "rgba(29,161,242,0.8)", padding: "8px 16px", fontSize: "0.5rem", letterSpacing: "0.12em", cursor: "pointer", display: "inline-block" }}
+            >
+              𝕏 공유
+            </a>
+          </div>
+        </motion.div>
+
         {/* 처음으로 */}
         <motion.div
           className="text-center"

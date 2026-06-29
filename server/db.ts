@@ -176,6 +176,12 @@ export async function deleteArtwork(id: number) {
   await db.delete(artworks).where(eq(artworks.id, id));
 }
 
+export async function getAllArtworks() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(artworks).orderBy(asc(artworks.artistId), asc(artworks.displayOrder), asc(artworks.id));
+}
+
 export async function getArtworkCountsByArtistIds(artistIds: number[]): Promise<Record<number, number>> {
   if (!artistIds.length) return {};
   const db = await getDb();

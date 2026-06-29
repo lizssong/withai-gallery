@@ -6,7 +6,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   createArtist, createArtwork, deleteArtist, deleteArtwork,
-  getAllArtists, getAllArtistsAdmin, getArtistById, getArtistByUserId,
+  getAllArtists, getAllArtistsAdmin, getAllArtworks, getArtistById, getArtistByUserId,
   getArtworkById, getArtworksByArtistId, updateArtist, updateArtwork,
   getArtworkCountsByArtistIds,
 } from "./db";
@@ -136,9 +136,19 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 const adminRouter = router({
-  listAllArtists: adminProcedure.query(() => getAllArtistsAdmin()),
-  listAllArtworks: adminProcedure.input(z.object({ artistId: z.number() })).query(({ input }) =>
-    getArtworksByArtistId(input.artistId, false)),
+  listAllArtists: adminProcedure.query(async () => {
+    const artistList = await getAllArtistsAdmin();
+    const ids = artistList.map(a => a.id);
+    const counts = await getArtworkCountsByArtistIds(ids);
+    return artistList.map(a => ({ ...a, _artworkCount: counts[a.id] ?? 0 }));
+  }),
+  listAllArtworks: adminProcedure.query(() => getAllArtworks()),
+  toggleArtistPublish: adminProcedure.input(z.object({ id: z.number(), isPublished: z.boolean() })).mutation(async ({ input }) => {
+    return updateArtist(input.id, { isPublished: input.isPublished });
+  }),
+  toggleArtworkPublish: adminProcedure.input(z.object({ id: z.number(), isPublished: z.boolean() })).mutation(async ({ input }) => {
+    return updateArtwork(input.id, { isPublished: input.isPublished });
+  }),
   updateArtist: adminProcedure.input(z.object({
     id: z.number(), name: z.string().optional(), nameEn: z.string().optional(),
     specialty: z.string().optional(), bio: z.string().optional(), tools: z.string().optional(),

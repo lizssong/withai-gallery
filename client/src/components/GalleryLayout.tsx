@@ -165,6 +165,21 @@ function AuthButton({ location }: { location: string }) {
   if (user) {
     return (
       <div className="flex items-center gap-2">
+        {user.role === "admin" && (
+          <Link
+            href="/admin"
+            className="gallery-caption transition-all duration-200 no-underline"
+            style={{
+              fontSize: "0.5rem",
+              letterSpacing: "0.15em",
+              color: location === "/admin" ? "#c9a96e" : "rgba(201,169,110,0.55)",
+              borderBottom: location === "/admin" ? "1px solid rgba(201,169,110,0.5)" : "1px solid transparent",
+              paddingBottom: "2px",
+            }}
+          >
+            ADMIN
+          </Link>
+        )}
         <Link
           href="/my"
           className="gallery-caption transition-all duration-200 no-underline"
