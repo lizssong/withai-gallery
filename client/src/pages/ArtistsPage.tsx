@@ -6,11 +6,14 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { GalleryLayout } from "@/components/GalleryLayout";
-import { artists, exhibitionInfo } from "@/data/artists";
+import { trpc } from "@/lib/trpc";
+import { exhibitionInfo } from "@/data/artists";
 
 export default function ArtistsPage() {
   const [, setLocation] = useLocation();
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const { data: dbArtists, isLoading } = trpc.gallery.listArtists.useQuery();
+  const { data: artworkCounts } = trpc.gallery.artworkCounts.useQuery();
 
   return (
     <GalleryLayout>
@@ -65,21 +68,31 @@ export default function ArtistsPage() {
             gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
           }}
         >
-          {artists.map((artist, idx) => (
+          {isLoading && (
+            <div className="col-span-full text-center py-16" style={{ color: "rgba(201,169,110,0.5)", fontSize: "0.75rem", letterSpacing: "0.2em" }}>
+              LOADING...
+            </div>
+          )}
+          {!isLoading && dbArtists && dbArtists.length === 0 && (
+            <div className="col-span-full text-center py-16" style={{ color: "rgba(240,235,224,0.3)", fontSize: "0.8rem", fontFamily: "'Noto Serif KR', serif" }}>
+              아직 등록된 작가가 없습니다.<br />작가들이 마이페이지에서 프로필을 등록하면 이곳에 표시됩니다.
+            </div>
+          )}
+          {(dbArtists ?? []).map((artist, idx) => (
             <motion.div
               key={artist.id}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: idx * 0.06, ease: [0.23, 1, 0.32, 1] }}
               onClick={() => setLocation(`/artists/${artist.id}`)}
-              onMouseEnter={() => setHoveredId(artist.id)}
+              onMouseEnter={() => setHoveredId(artist.id as number)}
               onMouseLeave={() => setHoveredId(null)}
               className="cursor-pointer"
               style={{
                 background: "rgba(30,28,48,0.7)",
                 border: `1px solid ${hoveredId === artist.id ? "rgba(201,169,110,0.5)" : "rgba(201,169,110,0.12)"}`,
                 transition: "all 0.3s cubic-bezier(0.23,1,0.32,1)",
-                transform: hoveredId === artist.id ? "translateY(-4px)" : "translateY(0)",
+                transform: hoveredId === (artist.id as number) ? "translateY(-4px)" : "translateY(0)",
                 boxShadow: hoveredId === artist.id
                   ? "0 16px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,169,110,0.15)"
                   : "0 4px 16px rgba(0,0,0,0.3)",
@@ -88,8 +101,8 @@ export default function ArtistsPage() {
               {/* 프로필 이미지 */}
               <div className="relative overflow-hidden" style={{ aspectRatio: "1/1" }}>
                 <img
-                  src={artist.profileImage}
-                  alt={artist.name}
+                  src={artist.profileImageUrl ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(artist.name ?? '')}&background=2c1f0e&color=c9a96e&size=400`}
+                  alt={artist.name ?? ''}
                   className="w-full h-full object-cover"
                   style={{
                     transition: "transform 0.5s cubic-bezier(0.23,1,0.32,1)",
@@ -115,7 +128,7 @@ export default function ArtistsPage() {
                     padding: "2px 6px",
                   }}
                 >
-                  {artist.artworks.length}점
+                  {(artworkCounts?.[artist.id] ?? 0)}점
                 </div>
                 {/* 이름 오버레이 */}
                 <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -129,7 +142,7 @@ export default function ArtistsPage() {
                     className="gallery-caption"
                     style={{ fontSize: "0.48rem", color: "rgba(201,169,110,0.7)", letterSpacing: "0.15em" }}
                   >
-                    {artist.nameEn.toUpperCase()}
+                    {(artist.nameEn ?? '').toUpperCase()}
                   </p>
                 </div>
               </div>
@@ -144,7 +157,7 @@ export default function ArtistsPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  {artist.specialty}
+                  {artist.specialty ?? 'AI 아트'}
                 </p>
                 <div
                   className="flex items-center justify-between mt-2"
@@ -154,7 +167,7 @@ export default function ArtistsPage() {
                     className="gallery-caption"
                     style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.5)", letterSpacing: "0.1em" }}
                   >
-                    {artist.tools.split(" · ")[0]}
+                    {(artist.tools ?? '').split(" · ")[0]}
                   </p>
                   <span style={{ color: "#c9a96e", fontSize: "0.65rem" }}>→</span>
                 </div>

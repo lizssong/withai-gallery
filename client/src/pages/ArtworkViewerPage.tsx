@@ -1,12 +1,12 @@
 /**
- * ArtworkViewerPage — 작품 상세 뷰어
+ * ArtworkViewerPage — 작품 상세 뷰어 (DB 연동, 이미지/동영상 지원)
  * Design: "Ink & Light" — 전체 화면 몰입형 뷰어
  */
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { GalleryLayout } from "@/components/GalleryLayout";
-import { artists } from "@/data/artists";
+import { trpc } from "@/lib/trpc";
 
 export default function ArtworkViewerPage() {
   const params = useParams<{ id: string; artworkId: string }>();
@@ -14,16 +14,25 @@ export default function ArtworkViewerPage() {
   const [showInfo, setShowInfo] = useState(false);
   const [direction, setDirection] = useState(0);
 
-  const artist = artists.find((a) => a.id === params.id);
-  const artworkIndex = artist?.artworks.findIndex((w) => w.id === params.artworkId) ?? -1;
-  const artwork = artist?.artworks[artworkIndex];
+  const artistId = parseInt(params.id ?? "0", 10);
+  const artworkId = parseInt(params.artworkId ?? "0", 10);
 
-  const prevArtwork = artworkIndex > 0 ? artist?.artworks[artworkIndex - 1] : null;
-  const nextArtwork = artist && artworkIndex < artist.artworks.length - 1
-    ? artist.artworks[artworkIndex + 1]
-    : null;
+  const { data: artist } = trpc.gallery.getArtist.useQuery(
+    { id: artistId },
+    { enabled: !isNaN(artistId) && artistId > 0 }
+  );
+  const { data: artworkList } = trpc.gallery.listArtworks.useQuery(
+    { artistId },
+    { enabled: !isNaN(artistId) && artistId > 0 }
+  );
 
-  const goTo = (id: string, dir: number) => {
+  const artworks = artworkList ?? [];
+  const artworkIndex = artworks.findIndex((w) => w.id === artworkId);
+  const artwork = artworks[artworkIndex];
+  const prevArtwork = artworkIndex > 0 ? artworks[artworkIndex - 1] : null;
+  const nextArtwork = artworkIndex < artworks.length - 1 ? artworks[artworkIndex + 1] : null;
+
+  const goTo = (id: number, dir: number) => {
     setDirection(dir);
     setLocation(`/artists/${params.id}/artwork/${id}`);
   };
@@ -39,13 +48,22 @@ export default function ArtworkViewerPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [prevArtwork, nextArtwork]);
 
-  if (!artist || !artwork) {
+  const tags = artwork?.tags ? artwork.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
+
+  if (!artwork) {
     return (
       <GalleryLayout>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
           <p style={{ color: "rgba(240,235,224,0.5)", fontFamily: "'Noto Serif KR', serif" }}>
             작품을 찾을 수 없습니다.
           </p>
+          <button
+            onClick={() => setLocation(`/artists/${params.id}`)}
+            className="gallery-caption hover:opacity-80"
+            style={{ background: "none", border: "1px solid rgba(201,169,110,0.3)", color: "#c9a96e", padding: "6px 16px", fontSize: "0.5rem", letterSpacing: "0.15em", cursor: "pointer" }}
+          >
+            ← 작가 페이지로
+          </button>
         </div>
       </GalleryLayout>
     );
@@ -71,37 +89,18 @@ export default function ArtworkViewerPage() {
           <button
             onClick={() => setLocation(`/artists/${params.id}`)}
             className="gallery-caption transition-all duration-200 hover:opacity-80"
-            style={{
-              background: "none",
-              border: "1px solid rgba(201,169,110,0.2)",
-              color: "rgba(201,169,110,0.6)",
-              padding: "4px 10px",
-              fontSize: "0.45rem",
-              letterSpacing: "0.15em",
-              cursor: "pointer",
-            }}
+            style={{ background: "none", border: "1px solid rgba(201,169,110,0.2)", color: "rgba(201,169,110,0.6)", padding: "4px 10px", fontSize: "0.45rem", letterSpacing: "0.15em", cursor: "pointer" }}
           >
-            ← {artist.name} 작품 목록
+            ← {artist?.name ?? "작가"} 작품 목록
           </button>
           <div className="flex items-center gap-3">
-            <span
-              className="gallery-caption"
-              style={{ fontSize: "0.45rem", color: "rgba(201,169,110,0.4)", letterSpacing: "0.1em" }}
-            >
-              {artworkIndex + 1} / {artist.artworks.length}
+            <span className="gallery-caption" style={{ fontSize: "0.45rem", color: "rgba(201,169,110,0.4)", letterSpacing: "0.1em" }}>
+              {artworkIndex + 1} / {artworks.length}
             </span>
             <button
               onClick={() => setShowInfo((v) => !v)}
               className="gallery-caption transition-all duration-200 hover:opacity-80"
-              style={{
-                background: showInfo ? "rgba(201,169,110,0.15)" : "none",
-                border: "1px solid rgba(201,169,110,0.2)",
-                color: "rgba(201,169,110,0.6)",
-                padding: "4px 10px",
-                fontSize: "0.45rem",
-                letterSpacing: "0.15em",
-                cursor: "pointer",
-              }}
+              style={{ background: showInfo ? "rgba(201,169,110,0.15)" : "none", border: "1px solid rgba(201,169,110,0.2)", color: "rgba(201,169,110,0.6)", padding: "4px 10px", fontSize: "0.45rem", letterSpacing: "0.15em", cursor: "pointer" }}
             >
               {showInfo ? "정보 닫기" : "작품 정보 [i]"}
             </button>
@@ -115,23 +114,10 @@ export default function ArtworkViewerPage() {
             onClick={() => prevArtwork && goTo(prevArtwork.id, -1)}
             disabled={!prevArtwork}
             className="absolute left-2 sm:left-4 z-30 transition-all duration-200 hover:opacity-80 active:scale-95"
-            style={{
-              background: "rgba(12,10,20,0.7)",
-              border: "1px solid rgba(201,169,110,0.2)",
-              color: prevArtwork ? "#c9a96e" : "rgba(201,169,110,0.15)",
-              width: "40px",
-              height: "40px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: prevArtwork ? "pointer" : "not-allowed",
-              fontSize: "1rem",
-            }}
-          >
-            ←
-          </button>
+            style={{ background: "rgba(12,10,20,0.7)", border: "1px solid rgba(201,169,110,0.2)", color: prevArtwork ? "#c9a96e" : "rgba(201,169,110,0.15)", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", cursor: prevArtwork ? "pointer" : "not-allowed", fontSize: "1rem" }}
+          >←</button>
 
-          {/* 작품 이미지 */}
+          {/* 작품 미디어 */}
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={artwork.id}
@@ -144,15 +130,21 @@ export default function ArtworkViewerPage() {
               className="relative"
               style={{ maxWidth: "min(800px, calc(100vw - 120px))", width: "100%" }}
             >
-              <img
-                src={artwork.imageUrl}
-                alt={artwork.titleKo}
-                className="w-full object-contain"
-                style={{
-                  maxHeight: "calc(100vh - 12rem)",
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
-                }}
-              />
+              {artwork.mediaType === "video" ? (
+                <video
+                  src={artwork.mediaUrl ?? ""}
+                  controls
+                  className="w-full object-contain"
+                  style={{ maxHeight: "calc(100vh - 12rem)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}
+                />
+              ) : (
+                <img
+                  src={artwork.mediaUrl ?? artwork.thumbnailUrl ?? ""}
+                  alt={artwork.titleKo}
+                  className="w-full object-contain"
+                  style={{ maxHeight: "calc(100vh - 12rem)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}
+                />
+              )}
             </motion.div>
           </AnimatePresence>
 
@@ -161,21 +153,8 @@ export default function ArtworkViewerPage() {
             onClick={() => nextArtwork && goTo(nextArtwork.id, 1)}
             disabled={!nextArtwork}
             className="absolute right-2 sm:right-4 z-30 transition-all duration-200 hover:opacity-80 active:scale-95"
-            style={{
-              background: "rgba(12,10,20,0.7)",
-              border: "1px solid rgba(201,169,110,0.2)",
-              color: nextArtwork ? "#c9a96e" : "rgba(201,169,110,0.15)",
-              width: "40px",
-              height: "40px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: nextArtwork ? "pointer" : "not-allowed",
-              fontSize: "1rem",
-            }}
-          >
-            →
-          </button>
+            style={{ background: "rgba(12,10,20,0.7)", border: "1px solid rgba(201,169,110,0.2)", color: nextArtwork ? "#c9a96e" : "rgba(201,169,110,0.15)", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", cursor: nextArtwork ? "pointer" : "not-allowed", fontSize: "1rem" }}
+          >→</button>
         </div>
 
         {/* 작품 정보 패널 (슬라이드업) */}
@@ -187,101 +166,51 @@ export default function ArtworkViewerPage() {
               exit={{ y: "100%" }}
               transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
               className="fixed bottom-0 left-0 right-0 z-40"
-              style={{
-                background: "rgba(18,18,30,0.97)",
-                borderTop: "1px solid rgba(201,169,110,0.2)",
-                padding: "1.5rem 1.5rem 2rem",
-                maxHeight: "50vh",
-                overflowY: "auto",
-              }}
+              style={{ background: "rgba(18,18,30,0.97)", borderTop: "1px solid rgba(201,169,110,0.2)", padding: "1.5rem 1.5rem 2rem", maxHeight: "50vh", overflowY: "auto" }}
             >
               <div style={{ maxWidth: "700px", margin: "0 auto" }}>
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
-                    <h2
-                      className="gallery-title mb-1"
-                      style={{ fontSize: "clamp(1.1rem, 3vw, 1.5rem)", color: "#f0ebe0" }}
-                    >
+                    <h2 className="gallery-title mb-1" style={{ fontSize: "clamp(1.1rem, 3vw, 1.5rem)", color: "#f0ebe0" }}>
                       {artwork.titleKo}
                     </h2>
-                    <p
-                      className="gallery-caption"
-                      style={{ fontSize: "0.5rem", color: "rgba(201,169,110,0.6)", letterSpacing: "0.15em" }}
-                    >
-                      {artwork.titleEn.toUpperCase()} · {artwork.year}
+                    <p className="gallery-caption" style={{ fontSize: "0.5rem", color: "rgba(201,169,110,0.6)", letterSpacing: "0.15em" }}>
+                      {(artwork.titleEn ?? '').toUpperCase()} · {artwork.year ?? "2025"}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setShowInfo(false)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "rgba(201,169,110,0.5)",
-                      cursor: "pointer",
-                      fontSize: "1.2rem",
-                      lineHeight: 1,
-                      flexShrink: 0,
-                    }}
-                  >
-                    ×
-                  </button>
+                  <button onClick={() => setShowInfo(false)} style={{ background: "none", border: "none", color: "rgba(201,169,110,0.5)", cursor: "pointer", fontSize: "1.2rem", lineHeight: 1, flexShrink: 0 }}>×</button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <p
-                      className="gallery-caption mb-1"
-                      style={{ fontSize: "0.42rem", color: "#c9a96e", letterSpacing: "0.2em" }}
-                    >
-                      ARTIST
-                    </p>
+                    <p className="gallery-caption mb-1" style={{ fontSize: "0.42rem", color: "#c9a96e", letterSpacing: "0.2em" }}>ARTIST</p>
                     <p style={{ fontSize: "0.78rem", color: "rgba(240,235,224,0.7)", fontFamily: "'Noto Serif KR', serif" }}>
-                      {artist.name} ({artist.nameEn})
+                      {artist?.name ?? "-"} {artist?.nameEn ? `(${artist.nameEn})` : ""}
                     </p>
                   </div>
                   <div>
-                    <p
-                      className="gallery-caption mb-1"
-                      style={{ fontSize: "0.42rem", color: "#c9a96e", letterSpacing: "0.2em" }}
-                    >
-                      MEDIUM
-                    </p>
+                    <p className="gallery-caption mb-1" style={{ fontSize: "0.42rem", color: "#c9a96e", letterSpacing: "0.2em" }}>MEDIUM</p>
                     <p style={{ fontSize: "0.78rem", color: "rgba(240,235,224,0.7)", fontFamily: "'Noto Serif KR', serif" }}>
-                      {artwork.medium}
+                      {artwork.medium ?? "AI 생성 아트"}
                     </p>
                   </div>
                 </div>
 
-                <p
-                  style={{
-                    fontSize: "0.82rem",
-                    color: "rgba(240,235,224,0.65)",
-                    fontFamily: "'Noto Serif KR', serif",
-                    lineHeight: 1.9,
-                    marginBottom: "1rem",
-                  }}
-                >
-                  {artwork.description}
-                </p>
+                {artwork.description && (
+                  <p style={{ fontSize: "0.82rem", color: "rgba(240,235,224,0.65)", fontFamily: "'Noto Serif KR', serif", lineHeight: 1.9, marginBottom: "1rem" }}>
+                    {artwork.description}
+                  </p>
+                )}
 
-                <div className="flex flex-wrap gap-1.5">
-                  {artwork.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="gallery-caption"
-                      style={{
-                        fontSize: "0.42rem",
-                        color: "rgba(201,169,110,0.55)",
-                        background: "rgba(201,169,110,0.07)",
-                        border: "1px solid rgba(201,169,110,0.15)",
-                        padding: "3px 8px",
-                        letterSpacing: "0.08em",
-                      }}
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag) => (
+                      <span key={tag} className="gallery-caption" style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.55)", background: "rgba(201,169,110,0.07)", border: "1px solid rgba(201,169,110,0.15)", padding: "3px 8px", letterSpacing: "0.08em" }}>
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -289,21 +218,12 @@ export default function ArtworkViewerPage() {
 
         {/* 하단 제목 (정보 패널 닫혔을 때) */}
         {!showInfo && (
-          <div
-            className="fixed bottom-0 left-0 right-0 text-center py-3"
-            style={{ background: "linear-gradient(to top, rgba(12,10,20,0.9), transparent)" }}
-          >
-            <p
-              className="gallery-title"
-              style={{ fontSize: "0.9rem", color: "rgba(240,235,224,0.7)" }}
-            >
+          <div className="fixed bottom-0 left-0 right-0 text-center py-3" style={{ background: "linear-gradient(to top, rgba(12,10,20,0.9), transparent)" }}>
+            <p className="gallery-title" style={{ fontSize: "0.9rem", color: "rgba(240,235,224,0.7)" }}>
               {artwork.titleKo}
             </p>
-            <p
-              className="gallery-caption"
-              style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.45)", letterSpacing: "0.12em" }}
-            >
-              {artist.name} · {artwork.year} · 키보드 ← → 이동 · [i] 정보
+            <p className="gallery-caption" style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.45)", letterSpacing: "0.12em" }}>
+              {artist?.name ?? ""} · {artwork.year ?? "2025"} · 키보드 ← → 이동 · [i] 정보
             </p>
           </div>
         )}

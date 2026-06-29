@@ -8,6 +8,7 @@ import {
   createArtist, createArtwork, deleteArtist, deleteArtwork,
   getAllArtists, getAllArtistsAdmin, getArtistById, getArtistByUserId,
   getArtworkById, getArtworksByArtistId, updateArtist, updateArtwork,
+  getArtworkCountsByArtistIds,
 } from "./db";
 import { storagePut } from "./storage";
 
@@ -21,6 +22,11 @@ async function uploadBase64(base64: string, mimeType: string, folder: string) {
 
 const galleryRouter = router({
   listArtists: publicProcedure.query(() => getAllArtists()),
+  artworkCounts: publicProcedure.query(async () => {
+    const artistList = await getAllArtists();
+    const ids = artistList.map(a => a.id);
+    return getArtworkCountsByArtistIds(ids);
+  }),
   getArtist: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
     const a = await getArtistById(input.id);
     if (!a) throw new TRPCError({ code: "NOT_FOUND" });

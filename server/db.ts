@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { artists, artworks, InsertArtist, InsertArtwork, InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -174,4 +174,20 @@ export async function deleteArtwork(id: number) {
   const db = await getDb();
   if (!db) throw new Error('DB not available');
   await db.delete(artworks).where(eq(artworks.id, id));
+}
+
+export async function getArtworkCountsByArtistIds(artistIds: number[]): Promise<Record<number, number>> {
+  if (!artistIds.length) return {};
+  const db = await getDb();
+  if (!db) return {};
+  const rows = await db
+    .select({ artistId: artworks.artistId, count: sql<number>`count(*) as count` })
+    .from(artworks)
+    .where(and(inArray(artworks.artistId, artistIds), eq(artworks.isPublished, true)))
+    .groupBy(artworks.artistId);
+  const result: Record<number, number> = {};
+  for (const row of rows) {
+    if (row.artistId !== null) result[row.artistId] = Number(row.count);
+  }
+  return result;
 }
