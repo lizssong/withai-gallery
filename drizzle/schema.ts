@@ -47,6 +47,8 @@ export const artists = mysqlTable("artists", {
   profileImageKey: text("profileImageKey"),
   sns: varchar("sns", { length: 500 }),
   displayOrder: int("displayOrder").default(0),
+  /** 소속 전시회 ID */
+  exhibitionId: int("exhibitionId"),
   isPublished: boolean("isPublished").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -127,3 +129,42 @@ export const artworkComments = mysqlTable("artworkComments", {
 
 export type ArtworkComment = typeof artworkComments.$inferSelect;
 export type InsertArtworkComment = typeof artworkComments.$inferInsert;
+
+// ── Exhibitions (전시회) ───────────────────────────────────────────────
+export const exhibitions = mysqlTable("exhibitions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** URL 슬러그 (e.g. spring-2025) */
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  /** 전시회 제목 (한글) */
+  titleKo: varchar("titleKo", { length: 200 }).notNull(),
+  /** 전시회 제목 (영문) */
+  titleEn: varchar("titleEn", { length: 200 }).notNull().default(""),
+  /** 전시회 소개문 */
+  description: text("description"),
+  /** 큐레이터 이름 */
+  curatorName: varchar("curatorName", { length: 100 }),
+  /** 초대장 부제목 */
+  subtitle: varchar("subtitle", { length: 300 }),
+  /** 전시 시작일 */
+  startDate: timestamp("startDate"),
+  /** 전시 종료일 */
+  endDate: timestamp("endDate"),
+  /** 최대 상시 인원 (0 = 무제한) */
+  maxArtists: int("maxArtists").default(10).notNull(),
+  /** 전시회 상태 */
+  status: mysqlEnum("status", ["draft", "active", "closed"]).default("draft").notNull(),
+  /** 대표 이미지 URL */
+  coverImageUrl: text("coverImageUrl"),
+  coverImageKey: text("coverImageKey"),
+  /** 장르 */
+  genre: varchar("genre", { length: 100 }),
+  /** 시즘 */
+  season: varchar("season", { length: 50 }),
+  /** 공개 여부 */
+  isPublished: boolean("isPublished").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Exhibition = typeof exhibitions.$inferSelect;
+export type InsertExhibition = typeof exhibitions.$inferInsert;

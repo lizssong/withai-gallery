@@ -2,9 +2,9 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   artists, artworks, artworkComments, artworkLikes,
-  invitations,
+  invitations, exhibitions,
   InsertArtist, InsertArtwork, InsertArtworkComment, InsertArtworkLike, InsertInvitation,
-  InsertUser, users
+  InsertExhibition, InsertUser, users
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -302,4 +302,60 @@ export async function hideComment(id: number) {
   const db = await getDb();
   if (!db) throw new Error('DB not available');
   await db.update(artworkComments).set({ isHidden: true }).where(eq(artworkComments.id, id));
+}
+
+// ── Exhibitions ────────────────────────────────────────────────────────────────────────────────
+export async function getAllExhibitions(publishedOnly = false) {
+  const db = await getDb();
+  if (!db) return [];
+  if (publishedOnly) {
+    return db.select().from(exhibitions).where(eq(exhibitions.isPublished, true)).orderBy(desc(exhibitions.createdAt));
+  }
+  return db.select().from(exhibitions).orderBy(desc(exhibitions.createdAt));
+}
+
+export async function getExhibitionById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(exhibitions).where(eq(exhibitions.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getExhibitionBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(exhibitions).where(eq(exhibitions.slug, slug)).limit(1);
+  return result[0];
+}
+
+export async function createExhibition(data: InsertExhibition) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.insert(exhibitions).values(data);
+  const result = await db.select().from(exhibitions).where(eq(exhibitions.slug, data.slug)).limit(1);
+  return result[0];
+}
+
+export async function updateExhibition(id: number, data: Partial<InsertExhibition>) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.update(exhibitions).set(data).where(eq(exhibitions.id, id));
+  return getExhibitionById(id);
+}
+
+export async function deleteExhibition(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  // 소속 작가들의 exhibitionId를 null로 초기화
+  await db.update(artists).set({ exhibitionId: null }).where(eq(artists.exhibitionId, id));
+  await db.delete(exhibitions).where(eq(exhibitions.id, id));
+}
+
+export async function getArtistsByExhibitionId(exhibitionId: number, publishedOnly = true) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = publishedOnly
+    ? and(eq(artists.exhibitionId, exhibitionId), eq(artists.isPublished, true))
+    : eq(artists.exhibitionId, exhibitionId);
+  return db.select().from(artists).where(conditions).orderBy(asc(artists.displayOrder), asc(artists.id));
 }

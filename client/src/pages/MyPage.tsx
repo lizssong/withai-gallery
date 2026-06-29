@@ -982,7 +982,7 @@ export default function MyPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
               <p style={{ fontSize: "0.48rem", color: "#c9a96e", letterSpacing: "0.25em", fontFamily: "sans-serif" }}>
                 MY ARTWORKS
@@ -993,18 +993,26 @@ export default function MyPage() {
             </div>
             <button
               onClick={() => { if (!profile) { toast.error("먼저 작가 프로필을 등록해 주세요."); return; } setShowArtworkModal(true); }}
+              className="transition-all duration-150 active:scale-95 hover:opacity-90"
               style={{
-                background: "linear-gradient(135deg, #2c1f0e 0%, #4a3728 100%)",
-                border: "1px solid rgba(201,169,110,0.3)",
-                color: "#c9a96e",
-                padding: "6px 14px",
-                fontSize: "0.5rem",
+                background: "linear-gradient(135deg, #c9a96e 0%, #a07840 100%)",
+                border: "none",
+                color: "#1c1a2e",
+                padding: "10px 22px",
+                fontSize: "0.72rem",
                 fontFamily: "sans-serif",
-                letterSpacing: "0.12em",
+                fontWeight: 700,
+                letterSpacing: "0.08em",
                 cursor: "pointer",
+                borderRadius: "2px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                boxShadow: "0 4px 16px rgba(201,169,110,0.25)",
               }}
             >
-              + 작품 업로드
+              <span style={{ fontSize: "1rem", lineHeight: 1 }}>↑</span>
+              작품 업로드
             </button>
           </div>
 

@@ -12,6 +12,8 @@ import {
   createInvitation, getAllInvitations, getInvitationByToken, markInvitationUsed, deleteInvitation,
   getLikeCount, hasLiked, addLike, removeLike,
   getCommentsByArtworkId, addComment, deleteComment, hideComment,
+  getAllExhibitions, getExhibitionById, getExhibitionBySlug,
+  createExhibition, updateExhibition, deleteExhibition, getArtistsByExhibitionId,
 } from "./db";
 import { nanoid } from "nanoid";
 import { storagePut } from "./storage";
@@ -283,6 +285,94 @@ const commentRouter = router({
   }),
 });
 
+// ── Exhibition Router ────────────────────────────────────────────────────────────────────────────────
+const exhibitionRouter = router({
+  /** 공개 전시회 목록 */
+  list: publicProcedure.query(() => getAllExhibitions(true)),
+  /** 전체 전시회 목록 (관리자) */
+  listAll: adminProcedure.query(() => getAllExhibitions(false)),
+  /** 슬러그로 조회 */
+  getBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
+    const ex = await getExhibitionBySlug(input.slug);
+    if (!ex) throw new TRPCError({ code: 'NOT_FOUND' });
+    return ex;
+  }),
+  /** ID로 조회 */
+  getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+    const ex = await getExhibitionById(input.id);
+    if (!ex) throw new TRPCError({ code: 'NOT_FOUND' });
+    return ex;
+  }),
+  /** 전시회별 작가 목록 */
+  artists: publicProcedure.input(z.object({ exhibitionId: z.number() })).query(({ input }) =>
+    getArtistsByExhibitionId(input.exhibitionId, true)
+  ),
+  /** 전시회 생성 (관리자) */
+  create: adminProcedure.input(z.object({
+    slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, '슬러그는 소문자, 숫자, 하이픈만 사용 가능'),
+    titleKo: z.string().min(1).max(200),
+    titleEn: z.string().max(200).optional(),
+    description: z.string().optional(),
+    curatorName: z.string().max(100).optional(),
+    subtitle: z.string().max(300).optional(),
+    maxArtists: z.number().int().min(0).default(10),
+    genre: z.string().max(100).optional(),
+    season: z.string().max(50).optional(),
+    status: z.enum(['draft', 'active', 'closed']).optional(),
+    isPublished: z.boolean().optional(),
+    startDate: z.date().optional(),
+    endDate: z.date().optional(),
+  })).mutation(async ({ input }) => {
+    return createExhibition({
+      slug: input.slug,
+      titleKo: input.titleKo,
+      titleEn: input.titleEn ?? '',
+      description: input.description,
+      curatorName: input.curatorName,
+      subtitle: input.subtitle,
+      maxArtists: input.maxArtists,
+      genre: input.genre,
+      season: input.season,
+      status: input.status ?? 'draft',
+      isPublished: input.isPublished ?? false,
+      startDate: input.startDate,
+      endDate: input.endDate,
+    });
+  }),
+  /** 전시회 수정 (관리자) */
+  update: adminProcedure.input(z.object({
+    id: z.number(),
+    slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/).optional(),
+    titleKo: z.string().min(1).max(200).optional(),
+    titleEn: z.string().max(200).optional(),
+    description: z.string().optional(),
+    curatorName: z.string().max(100).optional(),
+    subtitle: z.string().max(300).optional(),
+    maxArtists: z.number().int().min(0).optional(),
+    genre: z.string().max(100).optional(),
+    season: z.string().max(50).optional(),
+    status: z.enum(['draft', 'active', 'closed']).optional(),
+    isPublished: z.boolean().optional(),
+    startDate: z.date().optional(),
+    endDate: z.date().optional(),
+  })).mutation(async ({ input }) => {
+    const { id, ...rest } = input;
+    return updateExhibition(id, rest as any);
+  }),
+  /** 전시회 삭제 (관리자) */
+  delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    await deleteExhibition(input.id);
+    return { success: true };
+  }),
+  /** 작가를 전시회에 연결 (관리자) */
+  assignArtist: adminProcedure.input(z.object({
+    artistId: z.number(),
+    exhibitionId: z.number().nullable(),
+  })).mutation(async ({ input }) => {
+    return updateArtist(input.artistId, { exhibitionId: input.exhibitionId ?? undefined });
+  }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -299,6 +389,7 @@ export const appRouter = router({
   invitation: invitationRouter,
   like: likeRouter,
   comment: commentRouter,
+  exhibition: exhibitionRouter,
 });
 
 export type AppRouter = typeof appRouter;
