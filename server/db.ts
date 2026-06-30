@@ -362,6 +362,13 @@ export async function deleteExhibition(id: number) {
   await db.delete(exhibitions).where(eq(exhibitions.id, id));
 }
 
+export async function assignArtistToExhibition(artistId: number, exhibitionId: number | null) {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  await db.update(artists).set({ exhibitionId }).where(eq(artists.id, artistId));
+  return getArtistById(artistId);
+}
+
 export async function getArtistsByExhibitionId(exhibitionId: number, publishedOnly = true) {
   const db = await getDb();
   if (!db) return [];

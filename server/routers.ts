@@ -14,7 +14,7 @@ import {
   getCommentsByArtworkId, addComment, deleteComment, hideComment,
   getAllExhibitions, getExhibitionById, getExhibitionBySlug,
   createExhibition, updateExhibition, deleteExhibition, getArtistsByExhibitionId,
-  reorderArtworks,
+  reorderArtworks, assignArtistToExhibition,
 } from "./db";
 import { nanoid } from "nanoid";
 import { storagePut } from "./storage";
@@ -185,6 +185,14 @@ const adminRouter = router({
   })).mutation(async ({ input }) => {
     await reorderArtworks(input.orderedIds);
     return { success: true };
+  }),
+  assignArtistToExhibition: adminProcedure.input(z.object({
+    artistId: z.number(),
+    exhibitionId: z.number().nullable(),
+  })).mutation(async ({ input }) => {
+    const result = await assignArtistToExhibition(input.artistId, input.exhibitionId);
+    if (!result) throw new TRPCError({ code: 'NOT_FOUND', message: '작가를 찾을 수 없습니다.' });
+    return result;
   }),
   uploadArtworkForArtist: adminProcedure.input(z.object({
     artistId: z.number(),

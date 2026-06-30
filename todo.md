@@ -60,3 +60,9 @@
 - [x] server/routers.ts — admin.reorderArtworks 프로시저 추가
 - [x] AdminPage.tsx — 작품 관리 탭에 드래그 앤 드롭 정렬 UI 구현 (SortableArtworkCard, DragOverlay)
 - [x] 변경 후 "순서 저장" 배너 + 되돌리기 기능
+
+## 작가-전시회 연결 UI (2025-06-30)
+- [x] server/db.ts — assignArtistToExhibition 함수 추가
+- [x] server/routers.ts — admin.assignArtistToExhibition 프로시저 추가 (기존 exhibition.assignArtist 재활용)
+- [x] AdminPage.tsx — 작가 관리 탭에 전시회 연결 드롭다운 UI 구현
+- [x] 작가 카드에 현재 연결된 전시회 배지 표시 (미연결 시 경고 배지)

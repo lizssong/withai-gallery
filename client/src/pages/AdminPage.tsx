@@ -650,7 +650,7 @@ export default function AdminPage() {
     onError: () => toast.error("순서 저장에 실패했습니다."),
   });
 
-  const { data: exhibitions, refetch: refetchExhibitions } = trpc.exhibition.listAll.useQuery(undefined, { enabled: user?.role === "admin" && activeTab === "exhibitions" });
+  const { data: exhibitions, refetch: refetchExhibitions } = trpc.exhibition.listAll.useQuery(undefined, { enabled: user?.role === "admin" && (activeTab === "exhibitions" || activeTab === "artists") });
   const createExhibitionMutation = trpc.exhibition.create.useMutation({
     onSuccess: () => { refetchExhibitions(); setShowExhibitionForm(false); setExForm({ slug: '', titleKo: '', titleEn: '', description: '', curatorName: '', subtitle: '', maxArtists: 10, genre: '', season: '', status: 'draft', isPublished: false }); toast.success("전시회가 생성되었습니다!"); },
     onError: (e) => toast.error(e.message ?? "생성 실패"),
@@ -885,23 +885,57 @@ export default function AdminPage() {
               <div className="flex flex-col gap-3">
                 {artists.map((artist, idx) => (
                   <motion.div key={artist.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.04 }} style={{ background: "rgba(30,28,48,0.7)", border: "1px solid rgba(201,169,110,0.12)" }}>
-                    <div className="flex items-center gap-4 p-4">
-                      <img src={artist.profileImageUrl ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(artist.name ?? '')}&background=2c1f0e&color=c9a96e&size=80`} alt={artist.name ?? ""} className="rounded-full object-cover flex-shrink-0" style={{ width: "44px", height: "44px" }} />
-                      <div className="flex-1 min-w-0">
-                        <p className="gallery-title" style={{ fontSize: "0.95rem", color: "#f0ebe0" }}>{artist.name ?? "이름 없음"}</p>
-                        <p className="gallery-caption" style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.5)", letterSpacing: "0.1em" }}>{(artist.nameEn ?? "").toUpperCase()} · {artist.specialty ?? "-"} · 작품 {artist._artworkCount ?? 0}점</p>
+                    <div className="flex flex-col gap-0">
+                      <div className="flex items-center gap-4 p-4">
+                        <img src={artist.profileImageUrl ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(artist.name ?? '')}&background=2c1f0e&color=c9a96e&size=80`} alt={artist.name ?? ""} className="rounded-full object-cover flex-shrink-0" style={{ width: "44px", height: "44px" }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="gallery-title" style={{ fontSize: "0.95rem", color: "#f0ebe0" }}>{artist.name ?? "이름 없음"}</p>
+                          <p className="gallery-caption" style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.5)", letterSpacing: "0.1em" }}>{(artist.nameEn ?? "").toUpperCase()} · {artist.specialty ?? "-"} · 작품 {artist._artworkCount ?? 0}점</p>
+                          {/* 현재 연결된 전시회 배지 */}
+                          {artist.exhibitionId ? (
+                            <span style={{ display: "inline-block", marginTop: "4px", background: "rgba(201,169,110,0.12)", border: "1px solid rgba(201,169,110,0.3)", color: "#c9a96e", padding: "2px 8px", fontSize: "0.38rem", fontFamily: "sans-serif", letterSpacing: "0.1em" }}>
+                              🎨 {exhibitions?.find(e => e.id === artist.exhibitionId)?.titleKo ?? `전시회 #${artist.exhibitionId}`}
+                            </span>
+                          ) : (
+                            <span style={{ display: "inline-block", marginTop: "4px", background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.2)", color: "rgba(192,57,43,0.6)", padding: "2px 8px", fontSize: "0.38rem", fontFamily: "sans-serif", letterSpacing: "0.1em" }}>
+                              ⚠ 전시회 미연결
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                          <button onClick={() => toggleArtistPublish.mutate({ id: artist.id, isPublished: !artist.isPublished })} className="gallery-caption transition-all duration-200 hover:opacity-80"
+                            style={{ background: artist.isPublished ? "rgba(201,169,110,0.15)" : "rgba(30,28,48,0.8)", border: `1px solid ${artist.isPublished ? "rgba(201,169,110,0.5)" : "rgba(201,169,110,0.2)"}`, color: artist.isPublished ? "#c9a96e" : "rgba(201,169,110,0.4)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>
+                            {artist.isPublished ? "공개중" : "비공개"}
+                          </button>
+                          <button onClick={() => setExpandedArtist(expandedArtist === artist.id ? null : artist.id)} className="gallery-caption transition-all duration-200 hover:opacity-80"
+                            style={{ background: "none", border: "1px solid rgba(201,169,110,0.15)", color: "rgba(201,169,110,0.5)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>
+                            {expandedArtist === artist.id ? "접기" : "작품 보기"}
+                          </button>
+                          <button onClick={() => { if (confirm(`"${artist.name}" 작가와 모든 작품을 삭제하시겠습니까?`)) deleteArtistMutation.mutate({ id: artist.id }); }} className="gallery-caption transition-all duration-200 hover:opacity-80"
+                            style={{ background: "none", border: "1px solid rgba(192,57,43,0.3)", color: "rgba(192,57,43,0.6)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>삭제</button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button onClick={() => toggleArtistPublish.mutate({ id: artist.id, isPublished: !artist.isPublished })} className="gallery-caption transition-all duration-200 hover:opacity-80"
-                          style={{ background: artist.isPublished ? "rgba(201,169,110,0.15)" : "rgba(30,28,48,0.8)", border: `1px solid ${artist.isPublished ? "rgba(201,169,110,0.5)" : "rgba(201,169,110,0.2)"}`, color: artist.isPublished ? "#c9a96e" : "rgba(201,169,110,0.4)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>
-                          {artist.isPublished ? "공개중" : "비공개"}
-                        </button>
-                        <button onClick={() => setExpandedArtist(expandedArtist === artist.id ? null : artist.id)} className="gallery-caption transition-all duration-200 hover:opacity-80"
-                          style={{ background: "none", border: "1px solid rgba(201,169,110,0.15)", color: "rgba(201,169,110,0.5)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>
-                          {expandedArtist === artist.id ? "접기" : "작품 보기"}
-                        </button>
-                        <button onClick={() => { if (confirm(`"${artist.name}" 작가와 모든 작품을 삭제하시겠습니까?`)) deleteArtistMutation.mutate({ id: artist.id }); }} className="gallery-caption transition-all duration-200 hover:opacity-80"
-                          style={{ background: "none", border: "1px solid rgba(192,57,43,0.3)", color: "rgba(192,57,43,0.6)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>삭제</button>
+                      {/* 전시회 연결 드롭다운 */}
+                      <div className="flex items-center gap-3 px-4 pb-3" style={{ borderTop: "1px solid rgba(201,169,110,0.07)", paddingTop: "0.6rem" }}>
+                        <span style={{ fontSize: "0.45rem", color: "rgba(201,169,110,0.5)", fontFamily: "sans-serif", letterSpacing: "0.12em", flexShrink: 0 }}>전시회 연결</span>
+                        <select
+                          value={artist.exhibitionId ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value === "" ? null : Number(e.target.value);
+                            assignArtistMutation.mutate({ artistId: artist.id, exhibitionId: val });
+                          }}
+                          style={{ flex: 1, maxWidth: "320px", background: "rgba(12,10,20,0.7)", border: "1px solid rgba(201,169,110,0.2)", color: "#f0ebe0", padding: "5px 8px", fontSize: "0.65rem", fontFamily: "'Noto Serif KR', serif", outline: "none", cursor: "pointer" }}
+                        >
+                          <option value="" style={{ background: "#1c1a2e" }}>— 전시회 없음 —</option>
+                          {exhibitions?.map(ex => (
+                            <option key={ex.id} value={ex.id} style={{ background: "#1c1a2e" }}>
+                              {ex.titleKo} ({ex.slug})
+                            </option>
+                          ))}
+                        </select>
+                        {assignArtistMutation.isPending && (
+                          <span style={{ fontSize: "0.55rem", color: "rgba(201,169,110,0.5)", fontFamily: "sans-serif" }}>저장 중...</span>
+                        )}
                       </div>
                     </div>
                     {expandedArtist === artist.id && (
