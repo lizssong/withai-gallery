@@ -14,6 +14,7 @@ import {
   getCommentsByArtworkId, addComment, deleteComment, hideComment,
   getAllExhibitions, getExhibitionById, getExhibitionBySlug,
   createExhibition, updateExhibition, deleteExhibition, getArtistsByExhibitionId,
+  reorderArtworks,
 } from "./db";
 import { nanoid } from "nanoid";
 import { storagePut } from "./storage";
@@ -178,6 +179,12 @@ const adminRouter = router({
   })).mutation(async ({ input }) => { const { id, ...rest } = input; return updateArtwork(id, rest as any); }),
   deleteArtwork: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
     await deleteArtwork(input.id); return { success: true };
+  }),
+  reorderArtworks: adminProcedure.input(z.object({
+    orderedIds: z.array(z.number()).min(1),
+  })).mutation(async ({ input }) => {
+    await reorderArtworks(input.orderedIds);
+    return { success: true };
   }),
   uploadArtworkForArtist: adminProcedure.input(z.object({
     artistId: z.number(),

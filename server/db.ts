@@ -187,6 +187,17 @@ export async function getAllArtworks() {
   return db.select().from(artworks).orderBy(asc(artworks.artistId), asc(artworks.displayOrder), asc(artworks.id));
 }
 
+export async function reorderArtworks(orderedIds: number[]): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('DB not available');
+  // 각 ID에 인덱스 기반 displayOrder 값을 일괄 업데이트
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      db!.update(artworks).set({ displayOrder: index }).where(eq(artworks.id, id))
+    )
+  );
+}
+
 export async function getArtworkCountsByArtistIds(artistIds: number[]): Promise<Record<number, number>> {
   if (!artistIds.length) return {};
   const db = await getDb();

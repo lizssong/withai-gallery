@@ -53,3 +53,10 @@
 - [x] 전시회 카드 이름/슬러그 표시 버그 수정 (DB 데이터 정상 렌더링)
 - [x] 관리자 직접 작품 업로드 기능 추가 (작품 관리 탭에 업로드 버튼)
 - [x] 관리자가 특정 작가에게 작품을 대신 등록할 수 있는 기능 (admin.uploadArtworkForArtist)
+
+## 드래그 앤 드롭 순서 변경 (2025-06-30)
+- [x] @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities 패키지 설치
+- [x] server/db.ts — reorderArtworks 함수 추가 (displayOrder 일괄 업데이트)
+- [x] server/routers.ts — admin.reorderArtworks 프로시저 추가
+- [x] AdminPage.tsx — 작품 관리 탭에 드래그 앤 드롭 정렬 UI 구현 (SortableArtworkCard, DragOverlay)
+- [x] 변경 후 "순서 저장" 배너 + 되돌리기 기능
