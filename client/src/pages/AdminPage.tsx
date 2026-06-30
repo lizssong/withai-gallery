@@ -2,14 +2,427 @@
  * AdminPage — 관리자 대시보드
  * 민경(관리자)이 전체 작가/작품을 관리하는 페이지
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { GalleryLayout } from "@/components/GalleryLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 
+// ── 관리자 작품 업로드 모달 ──────────────────────────────────────────────────
+function AdminUploadModal({
+  artists,
+  onClose,
+  onSuccess,
+}: {
+  artists: Array<{ id: number; name: string | null }>;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [form, setForm] = useState({
+    artistId: artists[0]?.id ?? 0,
+    titleKo: "",
+    titleEn: "",
+    description: "",
+    year: "2025",
+    medium: "",
+    tags: "",
+    mediaType: "image" as "image" | "video",
+  });
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
+  const thumbInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadMutation = trpc.admin.uploadArtworkForArtist.useMutation({
+    onSuccess: () => {
+      setUploadProgress(100);
+      toast.success("작품이 업로드되었습니다!");
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 600);
+    },
+    onError: (e) => {
+      setIsUploading(false);
+      setUploadProgress(0);
+      toast.error(e.message ?? "업로드에 실패했습니다.");
+    },
+  });
+
+  const toBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("파일 크기는 50MB 이하여야 합니다.");
+      return;
+    }
+    setMediaFile(file);
+    const isVideo = file.type.startsWith("video/");
+    setForm((f) => ({ ...f, mediaType: isVideo ? "video" : "image" }));
+    if (!isVideo) {
+      const url = URL.createObjectURL(file);
+      setMediaPreview(url);
+    } else {
+      setMediaPreview(null);
+    }
+  };
+
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setThumbnailFile(file);
+    setThumbnailPreview(URL.createObjectURL(file));
+  };
+
+  const handleSubmit = async () => {
+    if (!mediaFile) { toast.error("파일을 선택해 주세요."); return; }
+    if (!form.titleKo.trim()) { toast.error("작품 제목을 입력해 주세요."); return; }
+    if (!form.artistId) { toast.error("작가를 선택해 주세요."); return; }
+
+    setIsUploading(true);
+    setUploadProgress(10);
+
+    try {
+      const mediaBase64 = await toBase64(mediaFile);
+      setUploadProgress(40);
+
+      let thumbnailBase64: string | undefined;
+      let thumbnailMime: string | undefined;
+      if (thumbnailFile) {
+        thumbnailBase64 = await toBase64(thumbnailFile);
+        thumbnailMime = thumbnailFile.type;
+      }
+      setUploadProgress(70);
+
+      uploadMutation.mutate({
+        artistId: form.artistId,
+        titleKo: form.titleKo.trim(),
+        titleEn: form.titleEn.trim(),
+        description: form.description.trim() || undefined,
+        year: form.year || "2025",
+        medium: form.medium.trim() || undefined,
+        mediaType: form.mediaType,
+        mediaBase64,
+        mediaMime: mediaFile.type,
+        thumbnailBase64,
+        thumbnailMime,
+        tags: form.tags.trim() || undefined,
+      });
+    } catch {
+      setIsUploading(false);
+      setUploadProgress(0);
+      toast.error("파일 처리 중 오류가 발생했습니다.");
+    }
+  };
+
+  const inputStyle = {
+    width: "100%",
+    background: "rgba(12,10,20,0.6)",
+    border: "1px solid rgba(201,169,110,0.2)",
+    color: "#f0ebe0",
+    padding: "8px 10px",
+    fontSize: "0.78rem",
+    fontFamily: "'Noto Serif KR', serif",
+    outline: "none",
+  };
+
+  const labelStyle = {
+    fontSize: "0.52rem",
+    color: "rgba(201,169,110,0.6)",
+    fontFamily: "sans-serif",
+    letterSpacing: "0.1em",
+    display: "block",
+    marginBottom: "4px",
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget && !isUploading) onClose(); }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.2 }}
+        className="w-full overflow-y-auto"
+        style={{
+          maxWidth: "640px",
+          maxHeight: "90vh",
+          background: "rgba(20,18,36,0.98)",
+          border: "1px solid rgba(201,169,110,0.25)",
+          padding: "2rem",
+        }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="gallery-caption mb-1" style={{ fontSize: "0.45rem", color: "#c9a96e", letterSpacing: "0.3em" }}>ADMIN UPLOAD</p>
+            <h2 className="gallery-title" style={{ fontSize: "1.2rem", color: "#f0ebe0" }}>작품 직접 업로드</h2>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isUploading}
+            style={{ background: "none", border: "none", color: "rgba(240,235,224,0.4)", fontSize: "1.2rem", cursor: "pointer", padding: "4px 8px" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* 작가 선택 */}
+        <div className="mb-4">
+          <label style={labelStyle}>작가 선택 *</label>
+          <select
+            value={form.artistId}
+            onChange={(e) => setForm((f) => ({ ...f, artistId: Number(e.target.value) }))}
+            style={{ ...inputStyle, cursor: "pointer" }}
+            disabled={isUploading}
+          >
+            {artists.map((a) => (
+              <option key={a.id} value={a.id} style={{ background: "#1c1a2e" }}>
+                {a.name ?? "이름 없음"}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 파일 선택 */}
+        <div className="mb-4">
+          <label style={labelStyle}>이미지 / 동영상 파일 * (최대 50MB)</label>
+          <input
+            ref={mediaInputRef}
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleMediaSelect}
+            style={{ display: "none" }}
+            disabled={isUploading}
+          />
+          <button
+            onClick={() => mediaInputRef.current?.click()}
+            disabled={isUploading}
+            className="w-full transition-all duration-150 hover:opacity-80 active:scale-98"
+            style={{
+              background: mediaFile ? "rgba(201,169,110,0.08)" : "rgba(201,169,110,0.04)",
+              border: `2px dashed ${mediaFile ? "rgba(201,169,110,0.5)" : "rgba(201,169,110,0.2)"}`,
+              color: mediaFile ? "#c9a96e" : "rgba(201,169,110,0.4)",
+              padding: "1.5rem",
+              cursor: "pointer",
+              fontFamily: "'Noto Serif KR', serif",
+              fontSize: "0.78rem",
+              textAlign: "center",
+            }}
+          >
+            {mediaFile ? (
+              <div>
+                <p style={{ color: "#c9a96e", fontWeight: 600 }}>{mediaFile.name}</p>
+                <p style={{ fontSize: "0.62rem", color: "rgba(201,169,110,0.5)", marginTop: "4px" }}>
+                  {(mediaFile.size / 1024 / 1024).toFixed(1)} MB · {form.mediaType === "video" ? "동영상" : "이미지"}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: "1.5rem", marginBottom: "6px" }}>📁</p>
+                <p>클릭하여 파일 선택</p>
+                <p style={{ fontSize: "0.62rem", marginTop: "4px", color: "rgba(201,169,110,0.35)" }}>
+                  이미지(JPG, PNG, GIF, WebP) 또는 동영상(MP4, MOV, WebM)
+                </p>
+              </div>
+            )}
+          </button>
+          {/* 이미지 미리보기 */}
+          {mediaPreview && (
+            <div className="mt-2" style={{ maxHeight: "160px", overflow: "hidden" }}>
+              <img src={mediaPreview} alt="미리보기" className="w-full object-contain" style={{ maxHeight: "160px" }} />
+            </div>
+          )}
+        </div>
+
+        {/* 동영상 썸네일 */}
+        {form.mediaType === "video" && (
+          <div className="mb-4">
+            <label style={labelStyle}>동영상 썸네일 이미지 (선택)</label>
+            <input
+              ref={thumbInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailSelect}
+              style={{ display: "none" }}
+              disabled={isUploading}
+            />
+            <button
+              onClick={() => thumbInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full transition-all duration-150 hover:opacity-80"
+              style={{
+                background: thumbnailFile ? "rgba(201,169,110,0.08)" : "none",
+                border: `1px dashed ${thumbnailFile ? "rgba(201,169,110,0.4)" : "rgba(201,169,110,0.15)"}`,
+                color: thumbnailFile ? "#c9a96e" : "rgba(201,169,110,0.35)",
+                padding: "0.75rem",
+                cursor: "pointer",
+                fontFamily: "'Noto Serif KR', serif",
+                fontSize: "0.72rem",
+              }}
+            >
+              {thumbnailFile ? `✓ ${thumbnailFile.name}` : "+ 썸네일 이미지 선택 (선택사항)"}
+            </button>
+            {thumbnailPreview && (
+              <div className="mt-2">
+                <img src={thumbnailPreview} alt="썸네일 미리보기" className="object-cover" style={{ width: "80px", height: "80px" }} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 제목 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label style={labelStyle}>작품 제목 (한국어) *</label>
+            <input
+              value={form.titleKo}
+              onChange={(e) => setForm((f) => ({ ...f, titleKo: e.target.value }))}
+              placeholder="예: 빛의 속삭임"
+              style={inputStyle}
+              disabled={isUploading}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>작품 제목 (영문)</label>
+            <input
+              value={form.titleEn}
+              onChange={(e) => setForm((f) => ({ ...f, titleEn: e.target.value }))}
+              placeholder="Whisper of Light"
+              style={inputStyle}
+              disabled={isUploading}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>제작 연도</label>
+            <input
+              value={form.year}
+              onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
+              placeholder="2025"
+              style={inputStyle}
+              disabled={isUploading}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>매체 / 기법</label>
+            <input
+              value={form.medium}
+              onChange={(e) => setForm((f) => ({ ...f, medium: e.target.value }))}
+              placeholder="AI 아트, 디지털 드로잉"
+              style={inputStyle}
+              disabled={isUploading}
+            />
+          </div>
+        </div>
+
+        {/* 설명 */}
+        <div className="mb-3">
+          <label style={labelStyle}>작품 설명</label>
+          <textarea
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            placeholder="작품에 대한 설명을 입력하세요"
+            style={{ ...inputStyle, minHeight: "72px", resize: "vertical" }}
+            disabled={isUploading}
+          />
+        </div>
+
+        {/* 태그 */}
+        <div className="mb-6">
+          <label style={labelStyle}>태그 (쉼표로 구분)</label>
+          <input
+            value={form.tags}
+            onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+            placeholder="AI아트, 캐릭터, 판타지"
+            style={inputStyle}
+            disabled={isUploading}
+          />
+        </div>
+
+        {/* 진행률 바 */}
+        {isUploading && (
+          <div className="mb-4">
+            <div className="flex justify-between mb-1">
+              <span style={{ fontSize: "0.6rem", color: "rgba(201,169,110,0.6)", fontFamily: "sans-serif" }}>
+                {uploadProgress < 40 ? "파일 읽는 중..." : uploadProgress < 70 ? "인코딩 중..." : uploadProgress < 100 ? "서버에 전송 중..." : "완료!"}
+              </span>
+              <span style={{ fontSize: "0.6rem", color: "#c9a96e", fontFamily: "sans-serif" }}>{uploadProgress}%</span>
+            </div>
+            <div style={{ height: "4px", background: "rgba(201,169,110,0.1)", borderRadius: "2px", overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  width: `${uploadProgress}%`,
+                  background: "linear-gradient(90deg, #c9a96e, #a07840)",
+                  transition: "width 0.4s ease",
+                  borderRadius: "2px",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 버튼 */}
+        <div className="flex gap-3">
+          <button
+            onClick={handleSubmit}
+            disabled={isUploading || !mediaFile || !form.titleKo.trim()}
+            className="flex-1 transition-all duration-150 active:scale-95 hover:opacity-90"
+            style={{
+              background: isUploading || !mediaFile || !form.titleKo.trim()
+                ? "rgba(201,169,110,0.3)"
+                : "linear-gradient(135deg, #c9a96e 0%, #a07840 100%)",
+              border: "none",
+              color: "#1c1a2e",
+              padding: "12px 20px",
+              fontSize: "0.72rem",
+              fontFamily: "sans-serif",
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              cursor: isUploading || !mediaFile || !form.titleKo.trim() ? "not-allowed" : "pointer",
+              borderRadius: "2px",
+            }}
+          >
+            {isUploading ? "업로드 중..." : "작품 업로드"}
+          </button>
+          <button
+            onClick={onClose}
+            disabled={isUploading}
+            style={{
+              background: "none",
+              border: "1px solid rgba(201,169,110,0.2)",
+              color: "rgba(201,169,110,0.5)",
+              padding: "12px 20px",
+              fontSize: "0.72rem",
+              fontFamily: "sans-serif",
+              cursor: isUploading ? "not-allowed" : "pointer",
+            }}
+          >
+            취소
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── 메인 AdminPage ────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [, setLocation] = useLocation();
   const { user, loading } = useAuth();
@@ -19,6 +432,7 @@ export default function AdminPage() {
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
   const [showExhibitionForm, setShowExhibitionForm] = useState(false);
   const [editingExhibition, setEditingExhibition] = useState<any | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [exForm, setExForm] = useState({ slug: '', titleKo: '', titleEn: '', description: '', curatorName: '', subtitle: '', maxArtists: 10, genre: '', season: '', status: 'draft' as 'draft' | 'active' | 'closed', isPublished: false });
 
   const { data: artists, refetch: refetchArtists } = trpc.admin.listAllArtists.useQuery(
@@ -120,6 +534,17 @@ export default function AdminPage() {
 
   return (
     <GalleryLayout>
+      {/* 관리자 작품 업로드 모달 */}
+      <AnimatePresence>
+        {showUploadModal && artists && artists.length > 0 && (
+          <AdminUploadModal
+            artists={artists.map(a => ({ id: a.id, name: a.name }))}
+            onClose={() => setShowUploadModal(false)}
+            onSuccess={() => { refetchArtworks(); refetchArtists(); }}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="min-h-screen px-4 sm:px-8 py-10" style={{ maxWidth: "1100px", margin: "0 auto" }}>
         {/* 헤더 */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-8">
@@ -454,10 +879,44 @@ export default function AdminPage() {
         {/* 작품 전체 관리 탭 */}
         {activeTab === "artworks" && (
           <div>
-            {!allArtworks || allArtworks.length === 0 ? (
-              <p className="text-center py-12" style={{ color: "rgba(240,235,224,0.3)", fontFamily: "'Noto Serif KR', serif", fontSize: "0.8rem" }}>
-                등록된 작품이 없습니다.
+            {/* 작품 탭 헤더 — 관리자 업로드 버튼 */}
+            <div className="flex items-center justify-between mb-5">
+              <p style={{ fontSize: "0.72rem", color: "rgba(240,235,224,0.5)", fontFamily: "'Noto Serif KR', serif" }}>
+                전체 작품을 관리합니다. 관리자가 직접 작가 대신 작품을 업로드할 수 있습니다.
               </p>
+              <button
+                onClick={() => {
+                  if (!artists || artists.length === 0) {
+                    toast.error("먼저 작가를 등록해 주세요.");
+                    return;
+                  }
+                  setShowUploadModal(true);
+                }}
+                className="transition-all duration-150 active:scale-95 hover:opacity-90 flex items-center gap-2"
+                style={{
+                  background: "linear-gradient(135deg, #c9a96e 0%, #a07840 100%)",
+                  border: "none",
+                  color: "#1c1a2e",
+                  padding: "10px 20px",
+                  fontSize: "0.65rem",
+                  fontFamily: "sans-serif",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  cursor: "pointer",
+                  borderRadius: "2px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span style={{ fontSize: "0.9rem" }}>📤</span>
+                작품 업로드
+              </button>
+            </div>
+
+            {!allArtworks || allArtworks.length === 0 ? (
+              <div className="text-center py-16" style={{ border: "2px dashed rgba(201,169,110,0.1)", color: "rgba(240,235,224,0.3)", fontFamily: "'Noto Serif KR', serif", fontSize: "0.8rem" }}>
+                <p style={{ marginBottom: "8px" }}>등록된 작품이 없습니다.</p>
+                <p style={{ fontSize: "0.65rem", color: "rgba(201,169,110,0.4)" }}>위 "작품 업로드" 버튼으로 첫 작품을 등록해 보세요!</p>
+              </div>
             ) : (
               <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
                 {allArtworks.map((artwork: typeof allArtworks[0], idx: number) => (
@@ -536,7 +995,7 @@ export default function AdminPage() {
                     className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
                     style={{ background: "rgba(201,169,110,0.15)", border: "1px solid rgba(201,169,110,0.4)", color: "#c9a96e", padding: "6px 16px", fontSize: "0.48rem", letterSpacing: "0.15em", cursor: "pointer" }}
                   >
-                    {createInviteMutation.isPending ? "...": "생성"}
+                    {createInviteMutation.isPending ? "..." : "생성"}
                   </button>
                   <button
                     onClick={() => setIsCreatingInvite(false)}
@@ -598,7 +1057,7 @@ export default function AdminPage() {
                               className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
                               style={{ background: "rgba(201,169,110,0.1)", border: "1px solid rgba(201,169,110,0.3)", color: "#c9a96e", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}
                             >
-                              봅사
+                              복사
                             </button>
                           )}
                           <button

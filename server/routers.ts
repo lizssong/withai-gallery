@@ -179,6 +179,31 @@ const adminRouter = router({
   deleteArtwork: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
     await deleteArtwork(input.id); return { success: true };
   }),
+  uploadArtworkForArtist: adminProcedure.input(z.object({
+    artistId: z.number(),
+    titleKo: z.string().min(1), titleEn: z.string().default(""),
+    description: z.string().optional(), year: z.string().default("2025"),
+    medium: z.string().optional(), mediaType: z.enum(["image", "video"]).default("image"),
+    mediaBase64: z.string(), mediaMime: z.string(),
+    thumbnailBase64: z.string().optional(), thumbnailMime: z.string().optional(),
+    tags: z.string().optional(),
+  })).mutation(async ({ input }) => {
+    const artist = await getArtistById(input.artistId);
+    if (!artist) throw new TRPCError({ code: "NOT_FOUND", message: "\uc791\uac00\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4." });
+    const folder = input.mediaType === "video" ? "videos" : "artworks";
+    const media = await uploadBase64(input.mediaBase64, input.mediaMime, folder);
+    let thumbnailUrl: string | undefined, thumbnailKey: string | undefined;
+    if (input.thumbnailBase64 && input.thumbnailMime) {
+      const t = await uploadBase64(input.thumbnailBase64, input.thumbnailMime, "thumbnails");
+      thumbnailUrl = t.url; thumbnailKey = t.key;
+    }
+    return createArtwork({
+      artistId: input.artistId, titleKo: input.titleKo, titleEn: input.titleEn,
+      description: input.description, year: input.year, medium: input.medium,
+      mediaType: input.mediaType, mediaUrl: media.url, mediaKey: media.key,
+      thumbnailUrl, thumbnailKey, tags: input.tags, isPublished: true,
+    });
+  }),
 });
 
 // ── Invitation Router ──────────────────────────────────────────────────────────────────────
