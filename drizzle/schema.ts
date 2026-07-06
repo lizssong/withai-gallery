@@ -96,6 +96,8 @@ export const invitations = mysqlTable("invitations", {
   artistId: int("artistId"),
   /** 만료 시간 (null = 무제한) */
   expiresAt: timestamp("expiresAt"),
+  /** 가입 후 자동 연결할 전시회 ID */
+  exhibitionId: int("exhibitionId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

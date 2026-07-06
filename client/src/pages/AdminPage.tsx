@@ -632,11 +632,15 @@ export default function AdminPage() {
     name: string; nameEn: string; specialty: string; bio: string; tools: string; sns: string; profileImageUrl: string;
   }>({ name: '', nameEn: '', specialty: '', bio: '', tools: '', sns: '', profileImageUrl: '' });
   const [newSlotLabel, setNewSlotLabel] = useState("");
+  const [newInviteExhibitionId, setNewInviteExhibitionId] = useState<number | null>(null);
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
   const [showExhibitionForm, setShowExhibitionForm] = useState(false);
   const [editingExhibition, setEditingExhibition] = useState<any | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [exForm, setExForm] = useState({ slug: '', titleKo: '', titleEn: '', description: '', curatorName: '', subtitle: '', maxArtists: 10, genre: '', season: '', status: 'draft' as 'draft' | 'active' | 'closed', isPublished: false });
+  // 커버 이미지 업로드 상태
+  const [coverUploadingId, setCoverUploadingId] = useState<number | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const { data: artists, refetch: refetchArtists } = trpc.admin.listAllArtists.useQuery(undefined, { enabled: user?.role === "admin" });
   const { data: allArtworks, refetch: refetchArtworks } = trpc.admin.listAllArtworks.useQuery(undefined, { enabled: user?.role === "admin" && activeTab === "artworks" });
@@ -666,6 +670,23 @@ export default function AdminPage() {
   });
 
   const { data: exhibitions, refetch: refetchExhibitions } = trpc.exhibition.listAll.useQuery(undefined, { enabled: user?.role === "admin" && (activeTab === "exhibitions" || activeTab === "artists") });
+  const uploadCoverMutation = trpc.exhibition.uploadCover.useMutation({
+    onSuccess: () => { refetchExhibitions(); toast.success("커버 이미지가 저장되었습니다."); setCoverUploadingId(null); },
+    onError: (e) => { toast.error(e.message ?? "커버 업로드 실패"); setCoverUploadingId(null); },
+  });
+
+  const handleCoverUpload = (exhibitionId: number, file: File) => {
+    if (!file.type.startsWith('image/')) { toast.error('이미지 파일만 업로드 가능합니다.'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error('커버 이미지는 10MB 이하만 가능합니다.'); return; }
+    setCoverUploadingId(exhibitionId);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      uploadCoverMutation.mutate({ id: exhibitionId, imageBase64: base64, imageMime: file.type });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const createExhibitionMutation = trpc.exhibition.create.useMutation({
     onSuccess: () => { refetchExhibitions(); setShowExhibitionForm(false); setExForm({ slug: '', titleKo: '', titleEn: '', description: '', curatorName: '', subtitle: '', maxArtists: 10, genre: '', season: '', status: 'draft', isPublished: false }); toast.success("전시회가 생성되었습니다!"); },
     onError: (e) => toast.error(e.message ?? "생성 실패"),
@@ -866,7 +887,23 @@ export default function AdminPage() {
                           style={{ background: "none", border: "1px solid rgba(200,80,80,0.2)", color: "rgba(200,80,80,0.5)", padding: "5px 12px", fontSize: "0.55rem", fontFamily: "sans-serif", cursor: "pointer" }}>삭제</button>
                       </div>
                     </div>
-                    <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(201,169,110,0.08)" }}>
+                    {/* 커버 이미지 섹션 */}
+                    <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(201,169,110,0.08)" }}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <p style={{ fontSize: "0.5rem", color: "#c9a96e", letterSpacing: "0.2em", fontFamily: "sans-serif" }}>COVER IMAGE</p>
+                        <button
+                          onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleCoverUpload(ex.id, f); }; inp.click(); }}
+                          disabled={coverUploadingId === ex.id}
+                          style={{ background: "none", border: "1px solid rgba(201,169,110,0.2)", color: "rgba(201,169,110,0.6)", padding: "3px 10px", fontSize: "0.5rem", fontFamily: "sans-serif", cursor: "pointer", letterSpacing: "0.08em" }}
+                        >
+                          {coverUploadingId === ex.id ? "업로드 중...⏳" : ex.coverImageUrl ? "커버 교체" : "+ 커버 업로드"}
+                        </button>
+                        {ex.coverImageUrl && (
+                          <img src={ex.coverImageUrl} alt="cover" style={{ width: "60px", height: "36px", objectFit: "cover", border: "1px solid rgba(201,169,110,0.2)", borderRadius: "2px" }} />
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(201,169,110,0.08)" }}>
                       <p style={{ fontSize: "0.5rem", color: "#c9a96e", letterSpacing: "0.2em", fontFamily: "sans-serif", marginBottom: "8px" }}>ARTIST ASSIGNMENT</p>
                       {!artists || artists.length === 0 ? (
                         <p style={{ fontSize: "0.65rem", color: "rgba(240,235,224,0.3)", fontFamily: "'Noto Serif KR', serif" }}>등록된 작가가 없습니다.</p>
@@ -1116,11 +1153,21 @@ export default function AdminPage() {
                 <div className="flex gap-3 items-center flex-wrap">
                   <input type="text" value={newSlotLabel} onChange={e => setNewSlotLabel(e.target.value)} placeholder="작가 슬롯 이름 (예: 작가 1번 — 홍길동)" className="flex-1"
                     style={{ background: "rgba(12,10,20,0.6)", border: "1px solid rgba(201,169,110,0.25)", color: "#f0ebe0", padding: "6px 12px", fontSize: "0.75rem", fontFamily: "'Noto Serif KR', serif", outline: "none", minWidth: "200px" }} />
-                  <button onClick={() => { if (newSlotLabel.trim()) createInviteMutation.mutate({ slotLabel: newSlotLabel.trim() }); }} disabled={!newSlotLabel.trim() || createInviteMutation.isPending} className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
+                  <select
+                    value={newInviteExhibitionId ?? ""}
+                    onChange={e => setNewInviteExhibitionId(e.target.value ? Number(e.target.value) : null)}
+                    style={{ background: "rgba(12,10,20,0.6)", border: "1px solid rgba(201,169,110,0.25)", color: newInviteExhibitionId ? "#f0ebe0" : "rgba(240,235,224,0.35)", padding: "6px 10px", fontSize: "0.68rem", fontFamily: "'Noto Serif KR', serif", outline: "none", minWidth: "140px" }}
+                  >
+                    <option value="">전시회 선택 (선택안함)</option>
+                    {exhibitions?.map(ex => (
+                      <option key={ex.id} value={ex.id}>{ex.titleKo}</option>
+                    ))}
+                  </select>
+                  <button onClick={() => { if (newSlotLabel.trim()) createInviteMutation.mutate({ slotLabel: newSlotLabel.trim(), exhibitionId: newInviteExhibitionId ?? undefined }); }} disabled={!newSlotLabel.trim() || createInviteMutation.isPending} className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
                     style={{ background: "rgba(201,169,110,0.15)", border: "1px solid rgba(201,169,110,0.4)", color: "#c9a96e", padding: "6px 16px", fontSize: "0.48rem", letterSpacing: "0.15em", cursor: "pointer" }}>
                     {createInviteMutation.isPending ? "..." : "생성"}
                   </button>
-                  <button onClick={() => setIsCreatingInvite(false)} className="gallery-caption transition-all duration-200 hover:opacity-60"
+                  <button onClick={() => { setIsCreatingInvite(false); setNewInviteExhibitionId(null); }} className="gallery-caption transition-all duration-200 hover:opacity-60"
                     style={{ background: "none", border: "none", color: "rgba(240,235,224,0.3)", fontSize: "0.48rem", letterSpacing: "0.1em", cursor: "pointer" }}>취소</button>
                 </div>
               ) : (

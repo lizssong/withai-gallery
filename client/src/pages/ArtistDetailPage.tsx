@@ -215,14 +215,21 @@ export default function ArtistDetailPage() {
       <div className="min-h-screen">
 
         {/* ── 작가 헤더 ── */}
-        <div className="relative overflow-hidden" style={{ height: "clamp(180px, 28vw, 280px)" }}>
-          <img
-            src={artist.profileImageUrl ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(artist.name ?? '')}&background=2c1f0e&color=c9a96e&size=800`}
-            alt={artist.name ?? ''}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: "brightness(0.35) saturate(0.6)" }}
-          />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(12,10,20,0.2) 0%, rgba(12,10,20,0.92) 100%)" }} />
+        {/* 커버: 첫 번째 작품 이미지 또는 다크 그라디언트 */}
+        <div className="relative overflow-hidden" style={{ height: "clamp(160px, 22vw, 240px)" }}>
+          {artworks[0] ? (
+            <img
+              src={artworks[0].thumbnailUrl ?? artworks[0].mediaUrl ?? ""}
+              alt="cover"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: "brightness(0.28) saturate(0.55)" }}
+            />
+          ) : (
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #0c0a14 0%, #1c1a2e 100%)" }} />
+          )}
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(12,10,20,0.15) 0%, rgba(12,10,20,0.88) 100%)" }} />
+
+          {/* 돌아가기 */}
           <button
             onClick={() => setLocation("/artists")}
             className="absolute top-4 left-4 transition-all duration-200 hover:opacity-80 active:scale-95"
@@ -230,43 +237,66 @@ export default function ArtistDetailPage() {
           >
             ← 작가 목록
           </button>
+
+          {/* 프로필 이미지 + 이름 좌우 배치 */}
           <motion.div
             className="absolute bottom-0 left-0 right-0 px-5 sm:px-10 pb-5"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
           >
-            <div className="flex items-end gap-4 flex-wrap">
-              <div>
+            <div className="flex items-center gap-4">
+              {/* 프로필 원형 이미지 */}
+              <div
+                className="flex-shrink-0"
+                style={{
+                  width: "clamp(52px, 8vw, 72px)",
+                  height: "clamp(52px, 8vw, 72px)",
+                  borderRadius: "50%",
+                  border: "2px solid rgba(201,169,110,0.45)",
+                  overflow: "hidden",
+                  background: "rgba(12,10,20,0.6)",
+                  flexShrink: 0,
+                }}
+              >
+                <img
+                  src={artist.profileImageUrl ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(artist.name ?? '')}&background=2c1f0e&color=c9a96e&size=200`}
+                  alt={artist.name ?? ''}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* 이름 + 메타 */}
+              <div className="flex-1 min-w-0">
                 {artistIndex >= 0 && (
-                  <p style={{ fontSize: "0.72rem", color: "#c9a96e", letterSpacing: "0.3em", fontFamily: "sans-serif", marginBottom: "2px" }}>
+                  <p style={{ fontSize: "0.68rem", color: "#c9a96e", letterSpacing: "0.3em", fontFamily: "sans-serif", marginBottom: "2px" }}>
                     ARTIST NO.{String(artistIndex + 1).padStart(2, "0")}
                   </p>
                 )}
-                <h1 style={{ fontSize: "clamp(1.4rem, 3.5vw, 2rem)", color: "#f0ebe0", fontFamily: "'Noto Serif KR', serif", fontWeight: 700, lineHeight: 1.1, margin: 0 }}>
+                <h1 style={{ fontSize: "clamp(1.3rem, 3vw, 1.85rem)", color: "#f0ebe0", fontFamily: "'Noto Serif KR', serif", fontWeight: 700, lineHeight: 1.1, margin: 0 }}>
                   {artist.name}
                 </h1>
-                {artist.nameEn && (
-                  <p style={{ fontSize: "0.78rem", color: "rgba(201,169,110,0.55)", letterSpacing: "0.18em", fontFamily: "sans-serif", marginTop: "2px" }}>
-                    {artist.nameEn.toUpperCase()}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-3 flex-wrap pb-0.5">
-                {artist.specialty && (
-                  <span style={{ fontSize: "0.8rem", color: "rgba(240,235,224,0.55)", fontFamily: "'Noto Serif KR', serif", background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.15)", padding: "3px 10px" }}>
-                    {artist.specialty}
+                <div className="flex items-center gap-3 flex-wrap mt-1.5">
+                  {artist.nameEn && (
+                    <span style={{ fontSize: "0.72rem", color: "rgba(201,169,110,0.55)", letterSpacing: "0.18em", fontFamily: "sans-serif" }}>
+                      {artist.nameEn.toUpperCase()}
+                    </span>
+                  )}
+                  {artist.specialty && (
+                    <span style={{ fontSize: "0.75rem", color: "rgba(240,235,224,0.5)", fontFamily: "'Noto Serif KR', serif", background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.15)", padding: "2px 8px" }}>
+                      {artist.specialty}
+                    </span>
+                  )}
+                  <span style={{ fontSize: "0.72rem", color: "rgba(201,169,110,0.55)", fontFamily: "sans-serif", letterSpacing: "0.08em" }}>
+                    작품 {artworks.length}점
                   </span>
-                )}
-                <span style={{ fontSize: "0.78rem", color: "rgba(201,169,110,0.6)", fontFamily: "sans-serif", letterSpacing: "0.08em" }}>
-                  작품 {artworks.length}점
-                </span>
-                {artist.sns && (
-                  <a href={artist.sns} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: "0.78rem", color: "rgba(201,169,110,0.6)", fontFamily: "sans-serif", letterSpacing: "0.08em", textDecoration: "none", border: "1px solid rgba(201,169,110,0.2)", padding: "3px 10px" }}>
-                    SNS →
-                  </a>
-                )}
+                  {artist.sns && (
+                    <a href={artist.sns} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: "0.72rem", color: "rgba(201,169,110,0.55)", fontFamily: "sans-serif", letterSpacing: "0.08em", textDecoration: "none", border: "1px solid rgba(201,169,110,0.18)", padding: "2px 8px" }}>
+                      SNS →
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>

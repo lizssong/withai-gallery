@@ -80,3 +80,11 @@
 - [x] 작가 소개 띠 섹션 추가 (히어로 아래)
 - [x] index.css html font-size 17px 상향 (전체 텍스트 가독성 향상)
 - [x] gallery-caption 폰트 크기 0.7rem → 0.82rem 상향
+
+## 히어로 섹션 개선 + 전시회 커버 이미지 + 초대 링크 자동 연결 (2026-07-07)
+- [ ] ArtistDetailPage.tsx — 히어로 섹션: 프로필 이미지+이름 좌우 배치, 커버는 첫 번째 작품 이미지로 대체
+- [ ] DB schema — exhibitions 테이블에 coverImageUrl 컬럼 추가
+- [ ] server/routers.ts — 전시회 생성/수정에 coverImageUrl 포함, admin.uploadExhibitionCover 프로시저 추가
+- [ ] AdminPage.tsx — 전시회 생성/수정 폼에 커버 이미지 업로드 UI 추가
+- [ ] 초대 링크 생성 시 전시회 지정 옵션 추가 (AdminPage.tsx)
+- [ ] 가입 후 초대 링크의 전시회로 자동 연결 (server/routers.ts OAuth 콜백)

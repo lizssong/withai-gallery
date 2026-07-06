@@ -232,9 +232,10 @@ const invitationRouter = router({
   create: adminProcedure.input(z.object({
     slotLabel: z.string().min(1),
     expiresAt: z.date().optional(),
+    exhibitionId: z.number().optional(),
   })).mutation(async ({ input }) => {
     const token = nanoid(32);
-    return createInvitation({ token, slotLabel: input.slotLabel, expiresAt: input.expiresAt });
+    return createInvitation({ token, slotLabel: input.slotLabel, expiresAt: input.expiresAt, exhibitionId: input.exhibitionId });
   }),
   /** 관리자: 전체 초대 링크 목록 */
   list: adminProcedure.query(() => getAllInvitations()),
@@ -267,8 +268,12 @@ const invitationRouter = router({
         isPublished: false,
       });
     }
+    // 초대 링크에 전시회가 지정되어 있으면 자동 연결
+    if (inv.exhibitionId && artist) {
+      await updateArtist(artist.id, { exhibitionId: inv.exhibitionId });
+    }
     await markInvitationUsed(input.token, artist!.id);
-    return { success: true, artistId: artist!.id };
+    return { success: true, artistId: artist!.id, exhibitionId: inv.exhibitionId ?? null };
   }),
 });
 
@@ -352,6 +357,16 @@ const exhibitionRouter = router({
   artists: publicProcedure.input(z.object({ exhibitionId: z.number() })).query(({ input }) =>
     getArtistsByExhibitionId(input.exhibitionId, true)
   ),
+  /** 전시회 커버 이미지 업로드 (base64) */
+  uploadCover: adminProcedure.input(z.object({
+    id: z.number(),
+    imageBase64: z.string(),
+    imageMime: z.string(),
+  })).mutation(async ({ input }) => {
+    const { key, url } = await uploadBase64(input.imageBase64, input.imageMime, 'exhibition-covers');
+    await updateExhibition(input.id, { coverImageUrl: url, coverImageKey: key });
+    return { url, key };
+  }),
   /** 전시회 생성 (관리자) */
   create: adminProcedure.input(z.object({
     slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, '슬러그는 소문자, 숫자, 하이픈만 사용 가능'),
