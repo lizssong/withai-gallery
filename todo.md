@@ -71,3 +71,12 @@
 - [x] server/db.ts — updateArtist 함수 기존 재활용
 - [x] server/routers.ts — admin.updateArtist 프로시저 기존 재활용
 - [x] AdminPage.tsx — 작가 카드에 "프로필 편집" 버튼 + 애니메이션 인라인 편집 폼 UI 구현 (이름, 영문명, 소개, 전문 분야, 도구, SNS, 프로필 이미지 URL)
+
+## 작가 상세 페이지 UI 개선 (2026-07-06)
+- [x] ArtistDetailPage.tsx 전면 재작성 — 작품 중심 레이아웃
+- [x] 히어로 섹션 높이 축소 (작가 이름 크기 적정화)
+- [x] 작품 카드 클릭 시 우측 패널에 상세 정보 즉시 표시 (좌우 분할 레이아웃)
+- [x] 작품 상세 패널: 제목, 연도, 매체, 설명, 태그, 좋아요, 전체화면 버튼
+- [x] 작가 소개 띠 섹션 추가 (히어로 아래)
+- [x] index.css html font-size 17px 상향 (전체 텍스트 가독성 향상)
+- [x] gallery-caption 폰트 크기 0.7rem → 0.82rem 상향

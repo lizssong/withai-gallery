@@ -67,9 +67,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    font-size: 17px; /* 기본 16px → 17px 상향 (전체 rem 기반 텍스트 일괄 확대) */
+  }
   body {
     @apply bg-background text-foreground;
     font-family: 'Noto Serif KR', 'Noto Serif', Georgia, serif;
+    font-size: 1rem;
+    line-height: 1.75;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -149,8 +154,8 @@
   /* 캡션 스타일 */
   .gallery-caption {
     font-family: 'Noto Sans KR', sans-serif;
-    letter-spacing: 0.15em;
-    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    font-size: 0.82rem; /* 0.7rem → 0.82rem 가독성 향상 */
     text-transform: uppercase;
   }
 
