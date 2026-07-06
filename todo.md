@@ -66,3 +66,8 @@
 - [x] server/routers.ts — admin.assignArtistToExhibition 프로시저 추가 (기존 exhibition.assignArtist 재활용)
 - [x] AdminPage.tsx — 작가 관리 탭에 전시회 연결 드롭다운 UI 구현
 - [x] 작가 카드에 현재 연결된 전시회 배지 표시 (미연결 시 경고 배지)
+
+## 관리자 작가 프로필 편집 기능 (2026-07-06)
+- [x] server/db.ts — updateArtist 함수 기존 재활용
+- [x] server/routers.ts — admin.updateArtist 프로시저 기존 재활용
+- [x] AdminPage.tsx — 작가 카드에 "프로필 편집" 버튼 + 애니메이션 인라인 편집 폼 UI 구현 (이름, 영문명, 소개, 전문 분야, 도구, SNS, 프로필 이미지 URL)

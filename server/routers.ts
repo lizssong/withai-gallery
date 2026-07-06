@@ -168,7 +168,8 @@ const adminRouter = router({
   updateArtist: adminProcedure.input(z.object({
     id: z.number(), name: z.string().optional(), nameEn: z.string().optional(),
     specialty: z.string().optional(), bio: z.string().optional(), tools: z.string().optional(),
-    sns: z.string().optional(), displayOrder: z.number().optional(), isPublished: z.boolean().optional(),
+    sns: z.string().optional(), profileImageUrl: z.string().optional(),
+    displayOrder: z.number().optional(), isPublished: z.boolean().optional(),
   })).mutation(async ({ input }) => { const { id, ...rest } = input; return updateArtist(id, rest as any); }),
   deleteArtist: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
     await deleteArtist(input.id); return { success: true };

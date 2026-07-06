@@ -620,6 +620,10 @@ export default function AdminPage() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<"artists" | "artworks" | "invitations" | "exhibitions">("exhibitions");
   const [expandedArtist, setExpandedArtist] = useState<number | null>(null);
+  const [editingArtistId, setEditingArtistId] = useState<number | null>(null);
+  const [artistEditForm, setArtistEditForm] = useState<{
+    name: string; nameEn: string; specialty: string; bio: string; tools: string; sns: string; profileImageUrl: string;
+  }>({ name: '', nameEn: '', specialty: '', bio: '', tools: '', sns: '', profileImageUrl: '' });
   const [newSlotLabel, setNewSlotLabel] = useState("");
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
   const [showExhibitionForm, setShowExhibitionForm] = useState(false);
@@ -637,6 +641,10 @@ export default function AdminPage() {
   const deleteArtistMutation = trpc.admin.deleteArtist.useMutation({
     onSuccess: () => { refetchArtists(); toast.success("작가가 삭제되었습니다."); },
     onError: () => toast.error("삭제에 실패했습니다."),
+  });
+  const updateArtistMutation = trpc.admin.updateArtist.useMutation({
+    onSuccess: () => { refetchArtists(); setEditingArtistId(null); toast.success("작가 프로필이 수정되었습니다."); },
+    onError: (e) => toast.error(e.message ?? "수정에 실패했습니다."),
   });
   const toggleArtworkPublish = trpc.admin.toggleArtworkPublish.useMutation({
     onSuccess: () => { refetchArtworks(); refetchArtists(); toast.success("작품 공개 상태가 변경되었습니다."); },
@@ -907,6 +915,27 @@ export default function AdminPage() {
                             style={{ background: artist.isPublished ? "rgba(201,169,110,0.15)" : "rgba(30,28,48,0.8)", border: `1px solid ${artist.isPublished ? "rgba(201,169,110,0.5)" : "rgba(201,169,110,0.2)"}`, color: artist.isPublished ? "#c9a96e" : "rgba(201,169,110,0.4)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>
                             {artist.isPublished ? "공개중" : "비공개"}
                           </button>
+                          <button
+                            onClick={() => {
+                              if (editingArtistId === artist.id) {
+                                setEditingArtistId(null);
+                              } else {
+                                setEditingArtistId(artist.id);
+                                setArtistEditForm({
+                                  name: artist.name ?? '',
+                                  nameEn: artist.nameEn ?? '',
+                                  specialty: artist.specialty ?? '',
+                                  bio: artist.bio ?? '',
+                                  tools: artist.tools ?? '',
+                                  sns: artist.sns ?? '',
+                                  profileImageUrl: artist.profileImageUrl ?? '',
+                                });
+                              }
+                            }}
+                            className="gallery-caption transition-all duration-200 hover:opacity-80"
+                            style={{ background: editingArtistId === artist.id ? "rgba(201,169,110,0.15)" : "none", border: `1px solid ${editingArtistId === artist.id ? "rgba(201,169,110,0.5)" : "rgba(201,169,110,0.2)"}`, color: editingArtistId === artist.id ? "#c9a96e" : "rgba(201,169,110,0.45)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>
+                            {editingArtistId === artist.id ? "편집 닫기" : "프로필 편집"}
+                          </button>
                           <button onClick={() => setExpandedArtist(expandedArtist === artist.id ? null : artist.id)} className="gallery-caption transition-all duration-200 hover:opacity-80"
                             style={{ background: "none", border: "1px solid rgba(201,169,110,0.15)", color: "rgba(201,169,110,0.5)", padding: "4px 10px", fontSize: "0.42rem", letterSpacing: "0.1em", cursor: "pointer" }}>
                             {expandedArtist === artist.id ? "접기" : "작품 보기"}
@@ -938,6 +967,93 @@ export default function AdminPage() {
                         )}
                       </div>
                     </div>
+                    {/* 인라인 프로필 편집 폼 */}
+                    <AnimatePresence>
+                      {editingArtistId === artist.id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <div className="px-4 pb-4 pt-1" style={{ borderTop: "1px solid rgba(201,169,110,0.1)", background: "rgba(12,10,20,0.35)" }}>
+                            <p className="gallery-caption mb-3" style={{ fontSize: "0.42rem", color: "#c9a96e", letterSpacing: "0.2em", paddingTop: "0.75rem" }}>EDIT PROFILE</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {([
+                                { key: 'name', label: '이름 (한국어) *', placeholder: '예: 송민경' },
+                                { key: 'nameEn', label: '이름 (영문)', placeholder: 'Song Min-kyung' },
+                                { key: 'specialty', label: '전문 분야', placeholder: 'AI 아트 · 캐릭터 디자인' },
+                                { key: 'tools', label: '사용 도구', placeholder: 'Midjourney, Canva, Stable Diffusion' },
+                                { key: 'sns', label: 'SNS / 링크', placeholder: 'https://instagram.com/...' },
+                                { key: 'profileImageUrl', label: '프로필 이미지 URL', placeholder: 'https://...' },
+                              ] as { key: keyof typeof artistEditForm; label: string; placeholder: string }[]).map(({ key, label, placeholder }) => (
+                                <div key={key}>
+                                  <label style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.5)", fontFamily: "sans-serif", letterSpacing: "0.1em", display: "block", marginBottom: "3px" }}>{label}</label>
+                                  <input
+                                    value={artistEditForm[key]}
+                                    onChange={(e) => setArtistEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                    placeholder={placeholder}
+                                    style={{ width: "100%", background: "rgba(12,10,20,0.6)", border: "1px solid rgba(201,169,110,0.18)", color: "#f0ebe0", padding: "6px 9px", fontSize: "0.72rem", fontFamily: "'Noto Serif KR', serif", outline: "none" }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-3">
+                              <label style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.5)", fontFamily: "sans-serif", letterSpacing: "0.1em", display: "block", marginBottom: "3px" }}>작가 소개</label>
+                              <textarea
+                                value={artistEditForm.bio}
+                                onChange={(e) => setArtistEditForm(f => ({ ...f, bio: e.target.value }))}
+                                placeholder="작가에 대한 소개를 입력하세요"
+                                rows={3}
+                                style={{ width: "100%", background: "rgba(12,10,20,0.6)", border: "1px solid rgba(201,169,110,0.18)", color: "#f0ebe0", padding: "6px 9px", fontSize: "0.72rem", fontFamily: "'Noto Serif KR', serif", outline: "none", resize: "vertical" }}
+                              />
+                            </div>
+                            {/* 프로필 이미지 미리보기 */}
+                            {artistEditForm.profileImageUrl && (
+                              <div className="mt-2 flex items-center gap-3">
+                                <img
+                                  src={artistEditForm.profileImageUrl}
+                                  alt="프로필 미리보기"
+                                  className="rounded-full object-cover flex-shrink-0"
+                                  style={{ width: "40px", height: "40px", border: "1px solid rgba(201,169,110,0.3)" }}
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                                <span style={{ fontSize: "0.6rem", color: "rgba(201,169,110,0.5)", fontFamily: "sans-serif" }}>프로필 이미지 미리보기</span>
+                              </div>
+                            )}
+                            <div className="flex gap-2 mt-4">
+                              <button
+                                onClick={() => {
+                                  if (!artistEditForm.name.trim()) { toast.error("이름은 필수입니다."); return; }
+                                  updateArtistMutation.mutate({
+                                    id: artist.id,
+                                    name: artistEditForm.name.trim(),
+                                    nameEn: artistEditForm.nameEn.trim() || undefined,
+                                    specialty: artistEditForm.specialty.trim() || undefined,
+                                    bio: artistEditForm.bio.trim() || undefined,
+                                    tools: artistEditForm.tools.trim() || undefined,
+                                    sns: artistEditForm.sns.trim() || undefined,
+                                    profileImageUrl: artistEditForm.profileImageUrl.trim() || undefined,
+                                  });
+                                }}
+                                disabled={updateArtistMutation.isPending}
+                                className="transition-all duration-150 active:scale-95 hover:opacity-90"
+                                style={{ background: "linear-gradient(135deg, #c9a96e 0%, #a07840 100%)", border: "none", color: "#1c1a2e", padding: "7px 18px", fontSize: "0.6rem", fontFamily: "sans-serif", fontWeight: 700, letterSpacing: "0.08em", cursor: updateArtistMutation.isPending ? "not-allowed" : "pointer", borderRadius: "2px", opacity: updateArtistMutation.isPending ? 0.6 : 1 }}
+                              >
+                                {updateArtistMutation.isPending ? "저장 중..." : "저장"}
+                              </button>
+                              <button
+                                onClick={() => setEditingArtistId(null)}
+                                style={{ background: "none", border: "1px solid rgba(201,169,110,0.2)", color: "rgba(201,169,110,0.5)", padding: "7px 14px", fontSize: "0.6rem", fontFamily: "sans-serif", cursor: "pointer" }}
+                              >
+                                취소
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     {expandedArtist === artist.id && (
                       <ArtistArtworkList artistId={artist.id}
                         onTogglePublish={(id, val) => toggleArtworkPublish.mutate({ id, isPublished: val })}
