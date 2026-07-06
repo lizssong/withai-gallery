@@ -72,6 +72,8 @@ export const artworks = mysqlTable("artworks", {
   thumbnailUrl: text("thumbnailUrl"),
   thumbnailKey: text("thumbnailKey"),
   tags: text("tags"),
+  /** AI 생성 프롬프트 */
+  aiPrompt: text("aiPrompt"),
   displayOrder: int("displayOrder").default(0),
   isPublished: boolean("isPublished").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

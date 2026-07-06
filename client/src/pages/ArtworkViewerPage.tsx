@@ -272,6 +272,21 @@ export default function ArtworkViewerPage() {
                   </p>
                 )}
 
+                {/* AI 프롬프트 */}
+                {artwork.aiPrompt && (
+                  <div style={{ marginBottom: "1rem" }}>
+                    <p className="gallery-caption mb-2" style={{ fontSize: "0.42rem", color: "#c9a96e", letterSpacing: "0.2em" }}>AI PROMPT</p>
+                    <p style={{
+                      fontSize: "0.78rem", color: "rgba(240,235,224,0.55)", fontFamily: "monospace",
+                      lineHeight: 1.75, background: "rgba(201,169,110,0.05)",
+                      border: "1px solid rgba(201,169,110,0.12)", padding: "10px 12px",
+                      wordBreak: "break-all",
+                    }}>
+                      {artwork.aiPrompt}
+                    </p>
+                  </div>
+                )}
+
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {tags.map((tag) => (

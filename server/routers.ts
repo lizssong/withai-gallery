@@ -109,6 +109,7 @@ const artistRouter = router({
     mediaBase64: z.string(), mediaMime: z.string(),
     thumbnailBase64: z.string().optional(), thumbnailMime: z.string().optional(),
     tags: z.string().optional(),
+    aiPrompt: z.string().optional(),
   })).mutation(async ({ ctx, input }) => {
     const artist = await getArtistByUserId(ctx.user.id);
     if (!artist) throw new TRPCError({ code: "NOT_FOUND", message: "먼저 작가 프로필을 만들어 주세요." });
@@ -122,12 +123,13 @@ const artistRouter = router({
     return createArtwork({ artistId: artist.id, titleKo: input.titleKo, titleEn: input.titleEn,
       description: input.description, year: input.year, medium: input.medium,
       mediaType: input.mediaType, mediaUrl: media.url, mediaKey: media.key,
-      thumbnailUrl, thumbnailKey, tags: input.tags, isPublished: true });
+      thumbnailUrl, thumbnailKey, tags: input.tags, aiPrompt: input.aiPrompt, isPublished: true });
   }),
   updateArtwork: protectedProcedure.input(z.object({
     id: z.number(), titleKo: z.string().min(1).optional(), titleEn: z.string().optional(),
     description: z.string().optional(), year: z.string().optional(),
-    medium: z.string().optional(), tags: z.string().optional(), isPublished: z.boolean().optional(),
+    medium: z.string().optional(), tags: z.string().optional(),
+    aiPrompt: z.string().optional(), isPublished: z.boolean().optional(),
   })).mutation(async ({ ctx, input }) => {
     const artist = await getArtistByUserId(ctx.user.id);
     if (!artist) throw new TRPCError({ code: "NOT_FOUND" });
@@ -176,7 +178,8 @@ const adminRouter = router({
   }),
   updateArtwork: adminProcedure.input(z.object({
     id: z.number(), titleKo: z.string().optional(), titleEn: z.string().optional(),
-    description: z.string().optional(), isPublished: z.boolean().optional(), displayOrder: z.number().optional(),
+    description: z.string().optional(), aiPrompt: z.string().optional(),
+    isPublished: z.boolean().optional(), displayOrder: z.number().optional(),
   })).mutation(async ({ input }) => { const { id, ...rest } = input; return updateArtwork(id, rest as any); }),
   deleteArtwork: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
     await deleteArtwork(input.id); return { success: true };
@@ -203,6 +206,7 @@ const adminRouter = router({
     mediaBase64: z.string(), mediaMime: z.string(),
     thumbnailBase64: z.string().optional(), thumbnailMime: z.string().optional(),
     tags: z.string().optional(),
+    aiPrompt: z.string().optional(),
   })).mutation(async ({ input }) => {
     const artist = await getArtistById(input.artistId);
     if (!artist) throw new TRPCError({ code: "NOT_FOUND", message: "\uc791\uac00\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4." });
@@ -217,7 +221,7 @@ const adminRouter = router({
       artistId: input.artistId, titleKo: input.titleKo, titleEn: input.titleEn,
       description: input.description, year: input.year, medium: input.medium,
       mediaType: input.mediaType, mediaUrl: media.url, mediaKey: media.key,
-      thumbnailUrl, thumbnailKey, tags: input.tags, isPublished: true,
+      thumbnailUrl, thumbnailKey, tags: input.tags, aiPrompt: input.aiPrompt, isPublished: true,
     });
   }),
 });

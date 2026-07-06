@@ -393,6 +393,7 @@ function AdminUploadModal({
     year: "2025",
     medium: "",
     tags: "",
+    aiPrompt: "",
     mediaType: "image" as "image" | "video",
   });
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -481,6 +482,7 @@ function AdminUploadModal({
         thumbnailBase64,
         thumbnailMime,
         tags: form.tags.trim() || undefined,
+        aiPrompt: form.aiPrompt.trim() || undefined,
       });
     } catch {
       setIsUploading(false);
@@ -583,9 +585,14 @@ function AdminUploadModal({
           <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="작품에 대한 설명을 입력하세요" style={{ ...inputStyle, minHeight: "72px", resize: "vertical" }} disabled={isUploading} />
         </div>
 
-        <div className="mb-6">
+        <div className="mb-3">
           <label style={labelStyle}>태그 (쉼표로 구분)</label>
           <input value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} placeholder="AI아트, 캐릭터, 판타지" style={inputStyle} disabled={isUploading} />
+        </div>
+
+        <div className="mb-6">
+          <label style={labelStyle}>AI 프롬프트 (선택)</label>
+          <textarea value={form.aiPrompt} onChange={(e) => setForm((f) => ({ ...f, aiPrompt: e.target.value }))} placeholder="이 작품을 생성할 때 사용한 AI 프롬프트를 입력하세요. 관람객에게 창작 과정을 공유할 수 있습니다." style={{ ...inputStyle, minHeight: "72px", resize: "vertical" }} disabled={isUploading} />
         </div>
 
         {isUploading && (

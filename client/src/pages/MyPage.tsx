@@ -247,6 +247,7 @@ type ArtworkFormData = {
   year: string;
   medium: string;
   tags: string;
+  aiPrompt: string;
   isPublished: boolean;
   mediaType: "image" | "video";
   mediaFile?: File;
@@ -274,6 +275,7 @@ function ArtworkModal({
     year: initial?.year ?? "2025",
     medium: initial?.medium ?? "",
     tags: initial?.tags ?? "",
+    aiPrompt: (initial as any)?.aiPrompt ?? "",
     isPublished: initial?.isPublished ?? true,
     mediaType: initial?.mediaType ?? "image",
     id: initial?.id,
@@ -469,6 +471,18 @@ function ArtworkModal({
               value={form.tags}
               onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
               placeholder="AI아트, 캐릭터, 판타지"
+            />
+          </div>
+
+          {/* AI 프롬프트 */}
+          <div>
+            <label style={labelStyle}>AI 프롬프트 (선택)</label>
+            <textarea
+              rows={3}
+              style={{ ...inputStyle, resize: "vertical", lineHeight: 1.7 }}
+              value={form.aiPrompt}
+              onChange={(e) => setForm((f) => ({ ...f, aiPrompt: e.target.value }))}
+              placeholder="이 작품을 생성할 때 사용한 AI 프롬프트를 입력하세요. 관람객에게 창작 과정을 공유할 수 있습니다."
             />
           </div>
 
@@ -833,7 +847,7 @@ export default function MyPage() {
         await updateArtworkMutation.mutateAsync({
           id: data.id, titleKo: data.titleKo, titleEn: data.titleEn,
           description: data.description, year: data.year, medium: data.medium,
-          tags: data.tags, isPublished: data.isPublished,
+          tags: data.tags, aiPrompt: data.aiPrompt || undefined, isPublished: data.isPublished,
         });
         toast.success("작품이 수정되었습니다.");
         setEditingArtwork(null);
@@ -856,7 +870,7 @@ export default function MyPage() {
           titleKo: data.titleKo, titleEn: data.titleEn, description: data.description,
           year: data.year, medium: data.medium, mediaType: data.mediaType,
           mediaBase64, mediaMime: data.mediaFile.type, thumbnailBase64, thumbnailMime,
-          tags: data.tags,
+          tags: data.tags, aiPrompt: data.aiPrompt || undefined,
         });
         // 4단계: 완료 (100%)
         setUploadProgress(100);
