@@ -1,6 +1,7 @@
 /**
  * ExhibitionDetailPage — 전시회별 독립 페이지 (/exhibition/:slug)
  * 특정 전시회의 초대장 → 작가 목록 → 작품 뷰어 흐름을 독립적으로 제공합니다.
+ * 커버 이미지가 있으면 초대장 배경 및 작가 목록 헤더에 표시됩니다.
  */
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -67,6 +68,8 @@ export default function ExhibitionDetailPage() {
     );
   }
 
+  const coverImageUrl = (exhibition as any).coverImageUrl as string | null | undefined;
+
   return (
     <GalleryLayout>
       {/* BGM */}
@@ -82,18 +85,46 @@ export default function ExhibitionDetailPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
             className="min-h-screen flex flex-col items-center justify-center px-4 py-16"
+            style={{
+              position: "relative",
+              // 커버 이미지가 있으면 배경으로 사용
+              ...(coverImageUrl
+                ? {
+                    backgroundImage: `url(${coverImageUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : {}),
+            }}
           >
+            {/* 커버 이미지 있을 때 어두운 오버레이 */}
+            {coverImageUrl && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "linear-gradient(to bottom, rgba(12,10,20,0.55) 0%, rgba(12,10,20,0.75) 100%)",
+                  backdropFilter: "blur(1px)",
+                }}
+              />
+            )}
+
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               style={{
-                background: "linear-gradient(160deg, #f5f0e8 0%, #ede5d4 100%)",
+                position: "relative",
+                zIndex: 10,
+                background: coverImageUrl
+                  ? "linear-gradient(160deg, rgba(245,240,232,0.97) 0%, rgba(237,229,212,0.97) 100%)"
+                  : "linear-gradient(160deg, #f5f0e8 0%, #ede5d4 100%)",
                 maxWidth: "480px",
                 width: "100%",
                 padding: "clamp(2rem, 6vw, 3.5rem)",
-                position: "relative",
-                boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+                boxShadow: coverImageUrl
+                  ? "0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,169,110,0.15)"
+                  : "0 30px 80px rgba(0,0,0,0.5)",
               }}
             >
               {/* 씰 */}
@@ -119,8 +150,12 @@ export default function ExhibitionDetailPage() {
               </div>
 
               <div className="text-center">
-                <p style={{ fontSize: "0.5rem", color: "rgba(60,50,40,0.45)", fontFamily: "sans-serif", letterSpacing: "0.3em", marginBottom: "1.5rem", marginTop: "0.5rem" }}>
-                  ONLINE EXHIBITION — INVITATION
+                {/* 크리메타쏭 × AI ART GALLERY 브랜딩 */}
+                <p style={{ fontSize: "0.45rem", color: "rgba(60,50,40,0.35)", fontFamily: "sans-serif", letterSpacing: "0.25em", marginBottom: "0.5rem", marginTop: "0.5rem" }}>
+                  크리메타쏭 × AI ART GALLERY
+                </p>
+                <p style={{ fontSize: "0.5rem", color: "rgba(60,50,40,0.45)", fontFamily: "sans-serif", letterSpacing: "0.3em", marginBottom: "1.5rem" }}>
+                  {exhibition.season ? `${exhibition.season} — INVITATION` : "ONLINE EXHIBITION — INVITATION"}
                 </p>
 
                 <div style={{ width: "100%", height: "1px", background: "rgba(60,50,40,0.12)", marginBottom: "1.5rem" }} />
@@ -205,7 +240,19 @@ export default function ExhibitionDetailPage() {
             {/* 전시회 목록으로 */}
             <button
               onClick={() => setLocation("/exhibitions")}
-              style={{ marginTop: "2rem", background: "none", border: "none", color: "rgba(201,169,110,0.4)", fontSize: "0.55rem", fontFamily: "sans-serif", letterSpacing: "0.15em", cursor: "pointer" }}
+              style={{
+                position: "relative",
+                zIndex: 10,
+                marginTop: "2rem",
+                background: "none",
+                border: "none",
+                color: coverImageUrl ? "rgba(240,235,224,0.55)" : "rgba(201,169,110,0.4)",
+                fontSize: "0.55rem",
+                fontFamily: "sans-serif",
+                letterSpacing: "0.15em",
+                cursor: "pointer",
+                textShadow: coverImageUrl ? "0 1px 4px rgba(0,0,0,0.6)" : "none",
+              }}
             >
               ← 다른 전시회 보기
             </button>
@@ -217,102 +264,161 @@ export default function ExhibitionDetailPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
-            className="min-h-screen px-4 sm:px-8 py-16"
-            style={{ maxWidth: "1100px", margin: "0 auto" }}
           >
-            {/* 전시회 헤더 */}
-            <motion.div
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-center mb-12"
-            >
-              <p className="gallery-caption mb-2" style={{ fontSize: "0.5rem", color: "#c9a96e", letterSpacing: "0.3em" }}>
-                {exhibition.season ?? "EXHIBITION"}
-              </p>
-              <h1 className="gallery-title" style={{ fontSize: "clamp(1.6rem, 5vw, 2.5rem)", color: "#f0ebe0" }}>
-                {exhibition.titleKo}
-              </h1>
-              {exhibition.description && (
-                <p style={{ fontSize: "0.78rem", color: "rgba(240,235,224,0.4)", fontFamily: "'Noto Serif KR', serif", marginTop: "0.75rem", maxWidth: "520px", margin: "0.75rem auto 0", lineHeight: 1.8 }}>
-                  {exhibition.description}
-                </p>
-              )}
-              <div style={{ width: "40px", height: "1px", background: "rgba(201,169,110,0.3)", margin: "1.5rem auto 0" }} />
-            </motion.div>
-
-            {/* 작가 그리드 */}
-            {!artists || artists.length === 0 ? (
-              <div className="text-center py-20" style={{ color: "rgba(240,235,224,0.3)", fontFamily: "'Noto Serif KR', serif", fontSize: "0.85rem" }}>
-                이 전시회에 등록된 작가가 없습니다.
+            {/* 전시회 헤더 — 커버 이미지 배너 */}
+            {coverImageUrl ? (
+              <div
+                style={{
+                  position: "relative",
+                  height: "clamp(180px, 30vw, 320px)",
+                  overflow: "hidden",
+                  background: "rgba(12,10,20,0.9)",
+                }}
+              >
+                <img
+                  src={coverImageUrl}
+                  alt={exhibition.titleKo}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    objectPosition: "center 30%",
+                  }}
+                />
+                {/* 그라디언트 오버레이 */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(to bottom, rgba(12,10,20,0.2) 0%, rgba(12,10,20,0.8) 100%)",
+                  }}
+                />
+                {/* 헤더 텍스트 */}
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "clamp(1.5rem, 4vw, 2.5rem)",
+                    left: "clamp(1.5rem, 6vw, 4rem)",
+                    right: "clamp(1.5rem, 6vw, 4rem)",
+                  }}
+                >
+                  <p className="gallery-caption mb-2" style={{ fontSize: "0.5rem", color: "#c9a96e", letterSpacing: "0.3em" }}>
+                    {exhibition.season ?? "EXHIBITION"}
+                  </p>
+                  <h1 className="gallery-title" style={{ fontSize: "clamp(1.6rem, 5vw, 2.8rem)", color: "#f0ebe0", textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>
+                    {exhibition.titleKo}
+                  </h1>
+                  {exhibition.description && (
+                    <p style={{ fontSize: "0.78rem", color: "rgba(240,235,224,0.6)", fontFamily: "'Noto Serif KR', serif", marginTop: "0.5rem", maxWidth: "520px", lineHeight: 1.7, textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>
+                      {exhibition.description}
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {artists.map((artist, idx) => (
-                  <motion.div
-                    key={artist.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: idx * 0.07 }}
-                    onClick={() => setLocation(`/artists/${artist.id}`)}
-                    className="cursor-pointer group"
-                    style={{
-                      background: "rgba(30,28,48,0.7)",
-                      border: "1px solid rgba(201,169,110,0.1)",
-                      overflow: "hidden",
-                      transition: "all 0.25s",
-                    }}
-                    whileHover={{ scale: 1.02, borderColor: "rgba(201,169,110,0.3)" }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    {/* 프로필 이미지 */}
-                    <div style={{ height: "180px", background: "rgba(20,18,35,0.8)", overflow: "hidden", position: "relative" }}>
-                      {artist.profileImageUrl ? (
-                        <img
-                          src={artist.profileImageUrl}
-                          alt={artist.name ?? ""}
-                          style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.4s", }}
-                          className="group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center" style={{ fontSize: "3rem", opacity: 0.15 }}>
-                          🎨
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-5">
-                      <p className="gallery-caption mb-1" style={{ fontSize: "0.42rem", color: "#c9a96e", letterSpacing: "0.2em" }}>
-                        {artist.specialty ?? "ARTIST"}
-                      </p>
-                      <h3 style={{ fontSize: "1rem", color: "#f0ebe0", fontFamily: "'Playfair Display', serif", marginBottom: "0.4rem" }}>
-                        {artist.name ?? "이름 없음"}
-                      </h3>
-                      {artist.bio && (
-                        <p style={{ fontSize: "0.68rem", color: "rgba(240,235,224,0.4)", fontFamily: "'Noto Serif KR', serif", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {artist.bio}
-                        </p>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+              /* 커버 이미지 없을 때 기존 텍스트 헤더 */
+              <div className="px-4 sm:px-8 pt-16 pb-12" style={{ maxWidth: "1100px", margin: "0 auto" }}>
+                <motion.div
+                  initial={{ opacity: 0, y: -12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="text-center"
+                >
+                  <p className="gallery-caption mb-2" style={{ fontSize: "0.5rem", color: "#c9a96e", letterSpacing: "0.3em" }}>
+                    {exhibition.season ?? "EXHIBITION"}
+                  </p>
+                  <h1 className="gallery-title" style={{ fontSize: "clamp(1.6rem, 5vw, 2.5rem)", color: "#f0ebe0" }}>
+                    {exhibition.titleKo}
+                  </h1>
+                  {exhibition.description && (
+                    <p style={{ fontSize: "0.78rem", color: "rgba(240,235,224,0.4)", fontFamily: "'Noto Serif KR', serif", marginTop: "0.75rem", maxWidth: "520px", margin: "0.75rem auto 0", lineHeight: 1.8 }}>
+                      {exhibition.description}
+                    </p>
+                  )}
+                  <div style={{ width: "40px", height: "1px", background: "rgba(201,169,110,0.3)", margin: "1.5rem auto 0" }} />
+                </motion.div>
               </div>
             )}
 
-            {/* 하단 네비게이션 */}
-            <div className="flex justify-between items-center mt-12 pt-6" style={{ borderTop: "1px solid rgba(201,169,110,0.1)" }}>
-              <button
-                onClick={() => setEntered(false)}
-                style={{ background: "none", border: "none", color: "rgba(201,169,110,0.5)", fontSize: "0.55rem", fontFamily: "sans-serif", letterSpacing: "0.15em", cursor: "pointer" }}
-              >
-                ← 초대장으로
-              </button>
-              <button
-                onClick={() => setLocation("/exhibitions")}
-                style={{ background: "none", border: "none", color: "rgba(201,169,110,0.5)", fontSize: "0.55rem", fontFamily: "sans-serif", letterSpacing: "0.15em", cursor: "pointer" }}
-              >
-                다른 전시회 →
-              </button>
+            {/* 작가 그리드 */}
+            <div className="px-4 sm:px-8 py-12" style={{ maxWidth: "1100px", margin: "0 auto" }}>
+              {/* 커버 이미지 있을 때 구분선 */}
+              {coverImageUrl && (
+                <div style={{ width: "40px", height: "1px", background: "rgba(201,169,110,0.3)", margin: "0 auto 3rem" }} />
+              )}
+
+              {!artists || artists.length === 0 ? (
+                <div className="text-center py-20" style={{ color: "rgba(240,235,224,0.3)", fontFamily: "'Noto Serif KR', serif", fontSize: "0.85rem" }}>
+                  이 전시회에 등록된 작가가 없습니다.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {artists.map((artist, idx) => (
+                    <motion.div
+                      key={artist.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: idx * 0.07 }}
+                      onClick={() => setLocation(`/artists/${artist.id}`)}
+                      className="cursor-pointer group"
+                      style={{
+                        background: "rgba(30,28,48,0.7)",
+                        border: "1px solid rgba(201,169,110,0.1)",
+                        overflow: "hidden",
+                        transition: "all 0.25s",
+                      }}
+                      whileHover={{ scale: 1.02, borderColor: "rgba(201,169,110,0.3)" }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {/* 프로필 이미지 */}
+                      <div style={{ height: "180px", background: "rgba(20,18,35,0.8)", overflow: "hidden", position: "relative" }}>
+                        {artist.profileImageUrl ? (
+                          <img
+                            src={artist.profileImageUrl}
+                            alt={artist.name ?? ""}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.4s" }}
+                            className="group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ fontSize: "3rem", opacity: 0.15 }}>
+                            🎨
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-5">
+                        <p className="gallery-caption mb-1" style={{ fontSize: "0.42rem", color: "#c9a96e", letterSpacing: "0.2em" }}>
+                          {artist.specialty ?? "ARTIST"}
+                        </p>
+                        <h3 style={{ fontSize: "1rem", color: "#f0ebe0", fontFamily: "'Playfair Display', serif", marginBottom: "0.4rem" }}>
+                          {artist.name ?? "이름 없음"}
+                        </h3>
+                        {artist.bio && (
+                          <p style={{ fontSize: "0.68rem", color: "rgba(240,235,224,0.4)", fontFamily: "'Noto Serif KR', serif", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {artist.bio}
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* 하단 네비게이션 */}
+              <div className="flex justify-between items-center mt-12 pt-6" style={{ borderTop: "1px solid rgba(201,169,110,0.1)" }}>
+                <button
+                  onClick={() => setEntered(false)}
+                  style={{ background: "none", border: "none", color: "rgba(201,169,110,0.5)", fontSize: "0.55rem", fontFamily: "sans-serif", letterSpacing: "0.15em", cursor: "pointer" }}
+                >
+                  ← 초대장으로
+                </button>
+                <button
+                  onClick={() => setLocation("/exhibitions")}
+                  style={{ background: "none", border: "none", color: "rgba(201,169,110,0.5)", fontSize: "0.55rem", fontFamily: "sans-serif", letterSpacing: "0.15em", cursor: "pointer" }}
+                >
+                  다른 전시회 →
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

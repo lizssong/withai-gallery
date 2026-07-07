@@ -1,6 +1,7 @@
 /**
  * ExhibitionsPage — 전시회 선택 랜딩 페이지
  * 공개된 전시회 목록을 카드 형태로 보여주고, 각 전시회로 이동할 수 있습니다.
+ * 커버 이미지가 있으면 카드 상단에 표시됩니다.
  */
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -95,58 +96,131 @@ export default function ExhibitionsPage() {
                 whileHover={{ scale: 1.02, borderColor: "rgba(201,169,110,0.35)" }}
                 whileTap={{ scale: 0.98 }}
               >
-                {/* 카드 상단 장식 */}
-                <div
-                  style={{
-                    height: "4px",
-                    background:
-                      ex.status === "active"
-                        ? "linear-gradient(90deg, #c9a96e, #a07840)"
-                        : ex.status === "closed"
-                        ? "rgba(200,80,80,0.4)"
-                        : "rgba(201,169,110,0.2)",
-                  }}
-                />
-
-                <div className="p-6">
-                  {/* 상태 배지 */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <span
+                {/* ── 커버 이미지 영역 ── */}
+                {(ex as any).coverImageUrl ? (
+                  <div
+                    style={{
+                      position: "relative",
+                      height: "200px",
+                      overflow: "hidden",
+                      background: "rgba(20,18,35,0.9)",
+                    }}
+                  >
+                    <img
+                      src={(ex as any).coverImageUrl}
+                      alt={ex.titleKo}
                       style={{
-                        fontSize: "0.48rem",
-                        background:
-                          ex.status === "active"
-                            ? "rgba(80,200,120,0.12)"
-                            : ex.status === "closed"
-                            ? "rgba(200,80,80,0.12)"
-                            : "rgba(201,169,110,0.08)",
-                        color:
-                          ex.status === "active"
-                            ? "#50c878"
-                            : ex.status === "closed"
-                            ? "#e07070"
-                            : "#c9a96e",
-                        padding: "3px 10px",
-                        fontFamily: "sans-serif",
-                        letterSpacing: "0.15em",
-                        borderRadius: "2px",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        transition: "transform 0.5s cubic-bezier(0.23,1,0.32,1)",
                       }}
-                    >
-                      {ex.status === "active" ? "● OPEN" : ex.status === "closed" ? "● CLOSED" : "○ COMING SOON"}
-                    </span>
-                    {ex.season && (
+                      className="group-hover:scale-105"
+                    />
+                    {/* 그라디언트 오버레이 */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "linear-gradient(to bottom, transparent 40%, rgba(20,18,35,0.85) 100%)",
+                      }}
+                    />
+                    {/* 상태 배지 (커버 이미지 위에 표시) */}
+                    <div style={{ position: "absolute", top: "12px", left: "12px" }}>
                       <span
                         style={{
                           fontSize: "0.45rem",
-                          color: "rgba(201,169,110,0.4)",
+                          background:
+                            ex.status === "active"
+                              ? "rgba(80,200,120,0.85)"
+                              : ex.status === "closed"
+                              ? "rgba(200,80,80,0.85)"
+                              : "rgba(201,169,110,0.85)",
+                          color: "#fff",
+                          padding: "3px 10px",
                           fontFamily: "sans-serif",
-                          letterSpacing: "0.1em",
+                          letterSpacing: "0.15em",
+                          backdropFilter: "blur(4px)",
                         }}
                       >
-                        {ex.season}
+                        {ex.status === "active" ? "● OPEN" : ex.status === "closed" ? "● CLOSED" : "○ COMING SOON"}
                       </span>
+                    </div>
+                    {/* 시즌 배지 */}
+                    {ex.season && (
+                      <div style={{ position: "absolute", bottom: "12px", right: "12px" }}>
+                        <span
+                          style={{
+                            fontSize: "0.42rem",
+                            color: "rgba(201,169,110,0.9)",
+                            fontFamily: "sans-serif",
+                            letterSpacing: "0.15em",
+                            background: "rgba(12,10,20,0.6)",
+                            padding: "2px 8px",
+                            backdropFilter: "blur(4px)",
+                          }}
+                        >
+                          {ex.season}
+                        </span>
+                      </div>
                     )}
                   </div>
+                ) : (
+                  /* 커버 이미지 없을 때 — 상단 컬러 바 */
+                  <div
+                    style={{
+                      height: "4px",
+                      background:
+                        ex.status === "active"
+                          ? "linear-gradient(90deg, #c9a96e, #a07840)"
+                          : ex.status === "closed"
+                          ? "rgba(200,80,80,0.4)"
+                          : "rgba(201,169,110,0.2)",
+                    }}
+                  />
+                )}
+
+                <div className="p-6">
+                  {/* 커버 이미지 없을 때만 상태 배지 표시 */}
+                  {!(ex as any).coverImageUrl && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <span
+                        style={{
+                          fontSize: "0.48rem",
+                          background:
+                            ex.status === "active"
+                              ? "rgba(80,200,120,0.12)"
+                              : ex.status === "closed"
+                              ? "rgba(200,80,80,0.12)"
+                              : "rgba(201,169,110,0.08)",
+                          color:
+                            ex.status === "active"
+                              ? "#50c878"
+                              : ex.status === "closed"
+                              ? "#e07070"
+                              : "#c9a96e",
+                          padding: "3px 10px",
+                          fontFamily: "sans-serif",
+                          letterSpacing: "0.15em",
+                          borderRadius: "2px",
+                        }}
+                      >
+                        {ex.status === "active" ? "● OPEN" : ex.status === "closed" ? "● CLOSED" : "○ COMING SOON"}
+                      </span>
+                      {ex.season && (
+                        <span
+                          style={{
+                            fontSize: "0.45rem",
+                            color: "rgba(201,169,110,0.4)",
+                            fontFamily: "sans-serif",
+                            letterSpacing: "0.1em",
+                          }}
+                        >
+                          {ex.season}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* 전시회 제목 */}
                   <h2
