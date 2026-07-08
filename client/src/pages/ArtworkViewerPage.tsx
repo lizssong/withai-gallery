@@ -236,24 +236,48 @@ export default function ArtworkViewerPage() {
               flex: "0 0 auto",
               background: "rgba(14,12,24,0.97)",
               borderTop: "1px solid rgba(201,169,110,0.15)",
-              padding: "2rem 1.5rem",
+              padding: "0",
               overflowY: "auto",
             }}
           >
             {/* lg 이상에서는 고정 너비 사이드 패널 */}
             <style>{`
               @media (min-width: 1024px) {
-                .info-panel-inner {
-                  width: 340px;
-                  border-top: none;
+                .info-panel-outer {
+                  width: 420px !important;
+                  flex: 0 0 420px !important;
+                  border-top: none !important;
                   border-left: 1px solid rgba(201,169,110,0.15);
                   height: calc(100vh - 7rem);
+                  overflow-y: auto;
                   position: sticky;
                   top: 7rem;
+                  padding: 0 !important;
+                }
+                .info-panel-scroll {
+                  height: 100%;
+                  overflow-y: auto;
+                  padding: 2rem 1.75rem;
+                  scrollbar-width: thin;
+                  scrollbar-color: rgba(201,169,110,0.25) transparent;
+                }
+                .info-panel-scroll::-webkit-scrollbar {
+                  width: 4px;
+                }
+                .info-panel-scroll::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+                .info-panel-scroll::-webkit-scrollbar-thumb {
+                  background: rgba(201,169,110,0.25);
+                  border-radius: 2px;
+                }
+                .info-panel-scroll::-webkit-scrollbar-thumb:hover {
+                  background: rgba(201,169,110,0.45);
                 }
               }
             `}</style>
-            <div className="info-panel-inner" style={{ maxWidth: "500px", margin: "0 auto" }}>
+            <div className="info-panel-outer" style={{ padding: "2rem 1.75rem" }}>
+            <div className="info-panel-scroll">
               {/* 작품 제목 */}
               <AnimatePresence mode="wait">
                 <motion.div
@@ -359,6 +383,7 @@ export default function ArtworkViewerPage() {
                   </div>
                 </motion.div>
               </AnimatePresence>
+            </div>
             </div>
           </div>
         </div>
