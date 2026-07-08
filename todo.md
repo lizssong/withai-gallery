@@ -82,9 +82,20 @@
 - [x] gallery-caption 폰트 크기 0.7rem → 0.82rem 상향
 
 ## 히어로 섹션 개선 + 전시회 커버 이미지 + 초대 링크 자동 연결 (2026-07-07)
-- [ ] ArtistDetailPage.tsx — 히어로 섹션: 프로필 이미지+이름 좌우 배치, 커버는 첫 번째 작품 이미지로 대체
-- [ ] DB schema — exhibitions 테이블에 coverImageUrl 컬럼 추가
-- [ ] server/routers.ts — 전시회 생성/수정에 coverImageUrl 포함, admin.uploadExhibitionCover 프로시저 추가
-- [ ] AdminPage.tsx — 전시회 생성/수정 폼에 커버 이미지 업로드 UI 추가
-- [ ] 초대 링크 생성 시 전시회 지정 옵션 추가 (AdminPage.tsx)
-- [ ] 가입 후 초대 링크의 전시회로 자동 연결 (server/routers.ts OAuth 콜백)
+- [x] ArtistDetailPage.tsx — 히어로 섹션: 프로필 이미지+이름 좌우 배치, 커버는 첫 번째 작품 이미지로 대체
+- [x] DB schema — exhibitions 테이블에 coverImageUrl 컬럼 이미 존재 (마이그레이션 불필요)
+- [x] server/routers.ts — 전시회 생성/수정에 coverImageUrl 포함, admin.uploadExhibitionCover 프로시저 추가
+- [x] AdminPage.tsx — 전시회 카드에 커버 이미지 업로드 UI 추가
+- [x] 초대 링크 생성 시 전시회 지정 드롭다운 추가 (AdminPage.tsx)
+- [x] 가입 후 초대 링크의 전시회로 자동 연결 (invitations.exhibitionId → artist.exhibitionId)
+
+## 전시회 커버 이미지 표시 (2026-07-07)
+- [x] ExhibitionsPage.tsx — 전시회 카드 상단에 200px 커버 이미지 영역 추가 (상태/시즌 배지 오버레이)
+- [x] ExhibitionDetailPage.tsx — 초대장 배경에 커버 이미지 전체화면 표시 (어두운 오버레이)
+- [x] ExhibitionDetailPage.tsx — 작가 목록 헤더에 커버 이미지 배너 표시
+- [x] 커버 이미지 없을 때 기존 UI 폴백 처리
+
+## 작품 뷰어 + 홈 배너 + 크롭 기능 (2026-07-09)
+- [ ] ArtworkViewerPage.tsx — 정보 패널 항상 오른쪽에 표시 (좌우 분할, 버튼 없이 자동 표시)
+- [ ] Home.tsx — 전시회 목록 바로가기 배너/버튼 추가
+- [ ] AdminPage.tsx — 커버 이미지 업로드 후 크롭 UI 추가 (react-image-crop)

@@ -175,8 +175,28 @@ function HomeContent() {
           {entering ? "입장 중..." : "전시회 입장하기"}
         </button>
 
+        {/* 전시회 목록 바로가기 */}
+        <div className="text-center mt-3">
+          <button
+            onClick={() => setLocation("/exhibitions")}
+            className="gallery-caption transition-all duration-200 hover:opacity-80"
+            style={{
+              background: "none",
+              border: "1px solid rgba(139,115,85,0.3)",
+              color: "#8b7355",
+              padding: "6px 18px",
+              fontSize: "0.6rem",
+              letterSpacing: "0.18em",
+              cursor: "pointer",
+              width: "100%",
+            }}
+          >
+            모든 전시회 보기 →
+          </button>
+        </div>
+
         {/* 하단 장식 */}
-        <div className="text-center mt-4">
+        <div className="text-center mt-3">
           <p
             className="gallery-caption"
             style={{ fontSize: "0.42rem", color: "#b09070", letterSpacing: "0.15em" }}

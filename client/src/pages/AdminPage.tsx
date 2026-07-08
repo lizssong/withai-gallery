@@ -3,7 +3,9 @@
  * 민경(관리자)이 전체 작가/작품을 관리하는 페이지
  * 작품 관리 탭: 드래그 앤 드롭으로 전시 순서 변경 지원
  */
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -638,9 +640,13 @@ export default function AdminPage() {
   const [editingExhibition, setEditingExhibition] = useState<any | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [exForm, setExForm] = useState({ slug: '', titleKo: '', titleEn: '', description: '', curatorName: '', subtitle: '', maxArtists: 10, genre: '', season: '', status: 'draft' as 'draft' | 'active' | 'closed', isPublished: false });
-  // 커버 이미지 업로드 상태
+  // 커버 이미지 업로드 + 크롭 상태
   const [coverUploadingId, setCoverUploadingId] = useState<number | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [cropModal, setCropModal] = useState<{ exhibitionId: number; src: string; mime: string } | null>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
+  const cropImgRef = useRef<HTMLImageElement>(null);
 
   const { data: artists, refetch: refetchArtists } = trpc.admin.listAllArtists.useQuery(undefined, { enabled: user?.role === "admin" });
   const { data: allArtworks, refetch: refetchArtworks } = trpc.admin.listAllArtworks.useQuery(undefined, { enabled: user?.role === "admin" && activeTab === "artworks" });
@@ -678,13 +684,36 @@ export default function AdminPage() {
   const handleCoverUpload = (exhibitionId: number, file: File) => {
     if (!file.type.startsWith('image/')) { toast.error('이미지 파일만 업로드 가능합니다.'); return; }
     if (file.size > 10 * 1024 * 1024) { toast.error('커버 이미지는 10MB 이하만 가능합니다.'); return; }
-    setCoverUploadingId(exhibitionId);
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      uploadCoverMutation.mutate({ id: exhibitionId, imageBase64: base64, imageMime: file.type });
+      const src = e.target?.result as string;
+      setCropModal({ exhibitionId, src, mime: file.type });
+      setCrop(undefined);
+      setCompletedCrop(null);
     };
     reader.readAsDataURL(file);
+  };
+
+  const onCropImageLoad = useCallback((img: HTMLImageElement) => {
+    const { naturalWidth: w, naturalHeight: h } = img;
+    const c = centerCrop(makeAspectCrop({ unit: '%', width: 90 }, 16 / 9, w, h), w, h);
+    setCrop(c);
+  }, []);
+
+  const handleCropConfirm = () => {
+    if (!cropModal || !completedCrop || !cropImgRef.current) return;
+    const img = cropImgRef.current;
+    const canvas = document.createElement('canvas');
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    canvas.width = completedCrop.width * scaleX;
+    canvas.height = completedCrop.height * scaleY;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, completedCrop.x * scaleX, completedCrop.y * scaleY, completedCrop.width * scaleX, completedCrop.height * scaleY, 0, 0, canvas.width, canvas.height);
+    const base64 = canvas.toDataURL(cropModal.mime);
+    setCoverUploadingId(cropModal.exhibitionId);
+    uploadCoverMutation.mutate({ id: cropModal.exhibitionId, imageBase64: base64, imageMime: cropModal.mime });
+    setCropModal(null);
   };
 
   const createExhibitionMutation = trpc.exhibition.create.useMutation({
@@ -749,6 +778,60 @@ export default function AdminPage() {
             onClose={() => setShowUploadModal(false)}
             onSuccess={() => { refetchArtworks(); refetchArtists(); }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* 커버 이미지 크롭 모달 */}
+      <AnimatePresence>
+        {cropModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)" }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              style={{ background: "#1c1a2e", border: "1px solid rgba(201,169,110,0.25)", padding: "1.5rem", maxWidth: "640px", width: "100%", maxHeight: "90vh", overflowY: "auto" }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="gallery-caption" style={{ fontSize: "0.55rem", color: "#c9a96e", letterSpacing: "0.2em" }}>COVER IMAGE CROP</p>
+                  <p style={{ fontSize: "0.78rem", color: "rgba(240,235,224,0.6)", fontFamily: "'Noto Serif KR', serif", marginTop: "2px" }}>16:9 비율로 자르기 (드래그하여 영역 조정)</p>
+                </div>
+                <button onClick={() => setCropModal(null)} style={{ background: "none", border: "none", color: "rgba(201,169,110,0.5)", cursor: "pointer", fontSize: "1.3rem" }}>×</button>
+              </div>
+
+              <div style={{ maxHeight: "420px", overflow: "hidden", display: "flex", justifyContent: "center" }}>
+                <ReactCrop
+                  crop={crop}
+                  onChange={(c) => setCrop(c)}
+                  onComplete={(c) => setCompletedCrop(c)}
+                  aspect={16 / 9}
+                  style={{ maxWidth: "100%" }}
+                >
+                  <img
+                    ref={cropImgRef}
+                    src={cropModal.src}
+                    onLoad={(e) => onCropImageLoad(e.currentTarget)}
+                    style={{ maxWidth: "100%", maxHeight: "400px", objectFit: "contain" }}
+                    alt="crop preview"
+                  />
+                </ReactCrop>
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={handleCropConfirm}
+                  disabled={!completedCrop || uploadCoverMutation.isPending}
+                  className="flex-1 transition-all duration-150 active:scale-95"
+                  style={{ background: !completedCrop ? "rgba(201,169,110,0.3)" : "linear-gradient(135deg, #c9a96e 0%, #a07840 100%)", border: "none", color: "#1c1a2e", padding: "10px 20px", fontSize: "0.72rem", fontFamily: "sans-serif", fontWeight: 700, letterSpacing: "0.08em", cursor: !completedCrop ? "not-allowed" : "pointer" }}
+                >
+                  {uploadCoverMutation.isPending ? "저장 중...⏳" : "크롭 후 저장"}
+                </button>
+                <button onClick={() => setCropModal(null)} style={{ background: "none", border: "1px solid rgba(201,169,110,0.2)", color: "rgba(201,169,110,0.5)", padding: "10px 20px", fontSize: "0.72rem", fontFamily: "sans-serif", cursor: "pointer" }}>취소</button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
