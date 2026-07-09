@@ -30,6 +30,7 @@ export default function ArtworkViewerPage() {
   const [direction, setDirection] = useState(0);
   const [commentText, setCommentText] = useState("");
   const [guestName, setGuestName] = useState("");
+  const [lightbox, setLightbox] = useState(false);  // 라이트박스
   const { user } = useAuth();
   const fingerprint = useFingerprint();
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
@@ -60,6 +61,7 @@ export default function ArtworkViewerPage() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (lightbox) return; // 라이트박스 열림 시 다른 키 무시
       if (e.key === "ArrowLeft" && prevArtwork) goTo(prevArtwork.id, -1);
       if (e.key === "ArrowRight" && nextArtwork) goTo(nextArtwork.id, 1);
       if (e.key === "Escape") setLocation(`/artists/${params.id}`);
@@ -67,6 +69,43 @@ export default function ArtworkViewerPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [prevArtwork, nextArtwork]);
+
+  // 라이트박스 ESC 시닫기
+  useEffect(() => {
+    if (!lightbox) return;
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setLightbox(false); };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [lightbox]);
+
+  // 공유 함수
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const handleCopyLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => toast.success("링크가 복사되었습니다."))
+        .catch(() => {
+          // 클립보드 실패 시 폴백
+          const el = document.createElement("textarea");
+          el.value = shareUrl;
+          document.body.appendChild(el);
+          el.select();
+          document.execCommand("copy");
+          document.body.removeChild(el);
+          toast.success("링크가 복사되었습니다.");
+        });
+    } else {
+      toast.error("이 환경에서는 링크 복사가 지원되지 않습니다.");
+    }
+  };
+  const handleKakaoShare = () => {
+    // 카카오톡 공유 SDK가 없는 경우 웹 공유 URL로 대체
+    const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?app_key=&validation_action=default&validation_params=%7B%7D&ka=sdk%2F1.0.0+os%2Fjavascript+sdk_type%2Fjavascript+lang%2Fko-KR+device%2FDesktop+origin%2F${encodeURIComponent(window.location.origin)}`;
+    // 카카오 SDK 미설치 시 링크 복사로 대체
+    navigator.clipboard?.writeText(shareUrl).then(() => {
+      toast.success("링크가 복사되었습니다. 카카오톡에 붙여넣기 해주세요!");
+    }).catch(() => {});
+  };
 
   const tags = artwork?.tags ? artwork.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
 
@@ -158,6 +197,23 @@ export default function ArtworkViewerPage() {
             >
               {likeStatus?.liked ? "♥" : "♡"} {likeStatus?.count ?? 0}
             </button>
+            {/* 공유 버튼 그룹 */}
+            <button
+              onClick={handleCopyLink}
+              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
+              style={{ background: "none", border: "1px solid rgba(201,169,110,0.2)", color: "rgba(201,169,110,0.6)", padding: "5px 10px", fontSize: "0.72rem", letterSpacing: "0.08em", cursor: "pointer" }}
+              title="링크 복사"
+            >
+              🔗
+            </button>
+            <button
+              onClick={handleKakaoShare}
+              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
+              style={{ background: "rgba(254,229,0,0.06)", border: "1px solid rgba(254,229,0,0.2)", color: "rgba(254,229,0,0.7)", padding: "5px 10px", fontSize: "0.72rem", letterSpacing: "0.08em", cursor: "pointer" }}
+              title="카카오톡 공유"
+            >
+              카카오
+            </button>
             {/* 댓글 버튼 */}
             <button
               onClick={() => setShowComments(v => !v)}
@@ -179,6 +235,38 @@ export default function ArtworkViewerPage() {
             className="flex items-center justify-center relative"
             style={{ flex: "1 1 0", minHeight: "50vh", padding: "1.5rem 1rem" }}
           >
+            {/* 라이트박스 모달 */}
+            <AnimatePresence>
+              {lightbox && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="fixed inset-0 z-[200] flex items-center justify-center"
+                  style={{ background: "rgba(0,0,0,0.95)", cursor: "zoom-out" }}
+                  onClick={() => setLightbox(false)}
+                >
+                  <motion.img
+                    initial={{ scale: 0.92, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.92, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: [0.23,1,0.32,1] }}
+                    src={artwork.mediaUrl ?? artwork.thumbnailUrl ?? ""}
+                    alt={artwork.titleKo}
+                    onClick={e => e.stopPropagation()}
+                    style={{ maxWidth: "95vw", maxHeight: "95vh", objectFit: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.8)", cursor: "default" }}
+                  />
+                  <button
+                    onClick={() => setLightbox(false)}
+                    className="absolute top-4 right-4 gallery-caption transition-all hover:opacity-70"
+                    style={{ background: "rgba(12,10,20,0.8)", border: "1px solid rgba(201,169,110,0.3)", color: "#c9a96e", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", cursor: "pointer" }}
+                  >×</button>
+                  <p className="absolute bottom-4 gallery-caption" style={{ fontSize: "0.65rem", color: "rgba(201,169,110,0.4)", letterSpacing: "0.15em" }}>ESC 또는 클릭하여 닫기</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* 이전 버튼 */}
             <button
               onClick={() => prevArtwork && goTo(prevArtwork.id, -1)}
@@ -211,8 +299,10 @@ export default function ArtworkViewerPage() {
                   <img
                     src={artwork.mediaUrl ?? artwork.thumbnailUrl ?? ""}
                     alt={artwork.titleKo}
-                    className="w-full object-contain"
-                    style={{ maxHeight: "calc(100vh - 14rem)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}
+                    className="w-full object-contain transition-all duration-200 hover:opacity-90"
+                    style={{ maxHeight: "calc(100vh - 14rem)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)", cursor: "zoom-in" }}
+                    onClick={() => setLightbox(true)}
+                    title="클릭하여 확대"
                   />
                 )}
               </motion.div>
@@ -381,6 +471,56 @@ export default function ArtworkViewerPage() {
                       ✍ {comments?.length ?? 0} 감상
                     </button>
                   </div>
+
+                  {/* 공유 버튼 */}
+                  <div style={{ height: "1px", background: "rgba(201,169,110,0.12)", marginBottom: "1rem", marginTop: "0.5rem" }} />
+                  <div className="flex items-center gap-2">
+                    <p className="gallery-caption" style={{ fontSize: "0.6rem", color: "rgba(201,169,110,0.45)", letterSpacing: "0.15em", marginRight: "4px" }}>SHARE</p>
+                    <button
+                      onClick={handleCopyLink}
+                      className="gallery-caption flex items-center gap-1.5 transition-all duration-200 hover:opacity-80 active:scale-95"
+                      style={{ background: "rgba(201,169,110,0.06)", border: "1px solid rgba(201,169,110,0.2)", color: "rgba(201,169,110,0.7)", padding: "5px 12px", fontSize: "0.72rem", letterSpacing: "0.1em", cursor: "pointer" }}
+                    >
+                      🔗 링크 복사
+                    </button>
+                    <button
+                      onClick={handleKakaoShare}
+                      className="gallery-caption flex items-center gap-1.5 transition-all duration-200 hover:opacity-80 active:scale-95"
+                      style={{ background: "rgba(254,229,0,0.08)", border: "1px solid rgba(254,229,0,0.25)", color: "rgba(254,229,0,0.8)", padding: "5px 12px", fontSize: "0.72rem", letterSpacing: "0.1em", cursor: "pointer" }}
+                    >
+                      카카오톡 공유
+                    </button>
+                  </div>
+
+                  {/* 이 작가의 다른 작품 */}
+                  {artworks.length > 1 && (
+                    <div style={{ marginTop: "1.25rem" }}>
+                      <div style={{ height: "1px", background: "rgba(201,169,110,0.12)", marginBottom: "1rem" }} />
+                      <p className="gallery-caption mb-3" style={{ fontSize: "0.6rem", color: "rgba(201,169,110,0.45)", letterSpacing: "0.2em" }}>OTHER WORKS</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {artworks.filter(w => w.id !== artworkId).map(w => (
+                          <button
+                            key={w.id}
+                            onClick={() => goTo(w.id, w.id > artworkId ? 1 : -1)}
+                            className="relative transition-all duration-200 hover:opacity-90 active:scale-95"
+                            style={{ width: "64px", height: "64px", flexShrink: 0, border: "1px solid rgba(201,169,110,0.2)", overflow: "hidden", cursor: "pointer", background: "rgba(201,169,110,0.05)" }}
+                            title={w.titleKo}
+                          >
+                            {w.thumbnailUrl || w.mediaUrl ? (
+                              <img
+                                src={w.thumbnailUrl ?? w.mediaUrl ?? ""}
+                                alt={w.titleKo}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: "0.55rem", color: "rgba(201,169,110,0.4)", display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>이미지
+없음</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>

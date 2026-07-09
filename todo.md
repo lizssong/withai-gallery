@@ -96,6 +96,11 @@
 - [x] 커버 이미지 없을 때 기존 UI 폴백 처리
 
 ## 작품 뷰어 + 홈 배너 + 크롭 기능 (2026-07-09)
-- [ ] ArtworkViewerPage.tsx — 정보 패널 항상 오른쪽에 표시 (좌우 분할, 버튼 없이 자동 표시)
-- [ ] Home.tsx — 전시회 목록 바로가기 배너/버튼 추가
-- [ ] AdminPage.tsx — 커버 이미지 업로드 후 크롭 UI 추가 (react-image-crop)
+- [x] ArtworkViewerPage.tsx — 정보 패널 항상 오른쪽에 표시 (좌우 분할, 420px 너비, 독립 스크롤)
+- [x] Home.tsx — 전시회 목록 바로가기 "모든 전시회 보기 →" 버튼 추가
+- [x] AdminPage.tsx — 커버 이미지 업로드 후 16:9 크롭 모달 UI 추가 (react-image-crop)
+
+## 작품 뷰어 기능 확장 (2026-07-10)
+- [x] ArtworkViewerPage.tsx — 이미지 클릭 시 전체화면 라이트박스 모달 (ESC/클릭 닫기, zoom-in 커서)
+- [x] ArtworkViewerPage.tsx — 정보 패널 하단 "이 작가의 다른 작품" 64px 썸네일 섹션 (OTHER WORKS)
+- [x] ArtworkViewerPage.tsx — 상단 바 + 정보 패널 하단에 링크 복사 + 카카오톡 공유 버튼 (SHARE 섹션)
