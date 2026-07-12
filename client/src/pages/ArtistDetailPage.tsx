@@ -182,6 +182,13 @@ export default function ArtistDetailPage() {
   const artworks = artworkList ?? [];
   const selected = artworks.find((a) => a.id === selectedArtwork) ?? null;
 
+  // 데스크톱: 작품 목록 로드 후 첫 번째 작품 자동 선택
+  useEffect(() => {
+    if (artworkList && artworkList.length > 0 && selectedArtwork === null && !isMobile) {
+      setSelectedArtwork(artworkList[0].id);
+    }
+  }, [artworkList, isMobile]);
+
   const handleFullscreen = () => {
     if (!artist || !selected) return;
     setLocation(`/artists/${artist.id}/artwork/${selected.id}`);
