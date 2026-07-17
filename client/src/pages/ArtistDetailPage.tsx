@@ -189,6 +189,32 @@ export default function ArtistDetailPage() {
     }
   }, [artworkList, isMobile]);
 
+  // 키보드 방향키로 이전/다음 작품 탐색
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 입력 필드에 포커스 중이면 무시
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (artworks.length === 0) return;
+        const currentIndex = artworks.findIndex((a) => a.id === selectedArtwork);
+        if (e.key === "ArrowRight") {
+          // 다음 작품 (마지막이면 첫 번째로 순환)
+          const nextIndex = currentIndex < artworks.length - 1 ? currentIndex + 1 : 0;
+          setSelectedArtwork(artworks[nextIndex].id);
+        } else {
+          // 이전 작품 (첫 번째면 마지막으로 순환)
+          const prevIndex = currentIndex > 0 ? currentIndex - 1 : artworks.length - 1;
+          setSelectedArtwork(artworks[prevIndex].id);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [artworks, selectedArtwork]);
+
   const handleFullscreen = () => {
     if (!artist || !selected) return;
     setLocation(`/artists/${artist.id}/artwork/${selected.id}`);
@@ -325,6 +351,14 @@ export default function ArtistDetailPage() {
           <div className="flex items-center gap-4 mb-6">
             <p style={{ fontSize: "0.78rem", color: "#c9a96e", letterSpacing: "0.3em", fontFamily: "sans-serif" }}>ARTWORKS</p>
             <div style={{ flex: 1, height: "1px", background: "rgba(201,169,110,0.15)" }} />
+            {/* 키보드 탐색 힌트 — 데스크톱 전용 */}
+            {!isMobile && artworks.length > 1 && (
+              <span style={{ fontSize: "0.7rem", color: "rgba(201,169,110,0.38)", fontFamily: "sans-serif", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "4px" }}>
+                <kbd style={{ background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.18)", borderRadius: "3px", padding: "1px 5px", fontSize: "0.68rem", color: "rgba(201,169,110,0.5)" }}>←</kbd>
+                <kbd style={{ background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.18)", borderRadius: "3px", padding: "1px 5px", fontSize: "0.68rem", color: "rgba(201,169,110,0.5)" }}>→</kbd>
+                <span style={{ marginLeft: "2px" }}>작품 탐색</span>
+              </span>
+            )}
             {selected && !isMobile && (
               <button
                 onClick={() => setSelectedArtwork(null)}
@@ -413,29 +447,63 @@ export default function ArtistDetailPage() {
 
             {/* 데스크톱 우측 패널 */}
             <AnimatePresence>
-              {selected && !isMobile && (
-                <motion.div
-                  key={selected.id}
-                  initial={{ opacity: 0, x: 24 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 24 }}
-                  transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
-                  style={{
-                    width: "320px", flexShrink: 0,
-                    background: "rgba(22,20,38,0.95)",
-                    border: "1px solid rgba(201,169,110,0.2)",
-                    position: "sticky", top: "80px",
-                    maxHeight: "calc(100vh - 100px)", overflowY: "auto",
-                  }}
-                >
-                  <ArtworkDetailContent
-                    artwork={selected}
-                    artistId={artistId}
-                    onFullscreen={handleFullscreen}
-                    onClose={() => setSelectedArtwork(null)}
-                  />
-                </motion.div>
-              )}
+              {selected && !isMobile && (() => {
+                const currentIdx = artworks.findIndex((a) => a.id === selected.id);
+                const prevArtwork = currentIdx > 0 ? artworks[currentIdx - 1] : artworks[artworks.length - 1];
+                const nextArtwork = currentIdx < artworks.length - 1 ? artworks[currentIdx + 1] : artworks[0];
+                return (
+                  <motion.div
+                    key={selected.id}
+                    initial={{ opacity: 0, x: 24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 24 }}
+                    transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+                    style={{
+                      width: "320px", flexShrink: 0,
+                      background: "rgba(22,20,38,0.95)",
+                      border: "1px solid rgba(201,169,110,0.2)",
+                      position: "sticky", top: "80px",
+                      maxHeight: "calc(100vh - 100px)", overflowY: "auto",
+                      display: "flex", flexDirection: "column",
+                    }}
+                  >
+                    {/* 이전/다음 네비게이션 바 */}
+                    {artworks.length > 1 && (
+                      <div style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "8px 12px",
+                        borderBottom: "1px solid rgba(201,169,110,0.12)",
+                        background: "rgba(12,10,20,0.4)",
+                        flexShrink: 0,
+                      }}>
+                        <button
+                          onClick={() => setSelectedArtwork(prevArtwork.id)}
+                          className="transition-all duration-150 hover:opacity-80 active:scale-95"
+                          style={{ background: "none", border: "1px solid rgba(201,169,110,0.2)", color: "#c9a96e", padding: "4px 10px", fontSize: "0.75rem", cursor: "pointer", fontFamily: "sans-serif", letterSpacing: "0.05em" }}
+                          title="이전 작품 (←)">
+                          ← 이전
+                        </button>
+                        <span style={{ fontSize: "0.7rem", color: "rgba(201,169,110,0.45)", fontFamily: "sans-serif", letterSpacing: "0.1em" }}>
+                          {currentIdx + 1} / {artworks.length}
+                        </span>
+                        <button
+                          onClick={() => setSelectedArtwork(nextArtwork.id)}
+                          className="transition-all duration-150 hover:opacity-80 active:scale-95"
+                          style={{ background: "none", border: "1px solid rgba(201,169,110,0.2)", color: "#c9a96e", padding: "4px 10px", fontSize: "0.75rem", cursor: "pointer", fontFamily: "sans-serif", letterSpacing: "0.05em" }}
+                          title="다음 작품 (→)">
+                          다음 →
+                        </button>
+                      </div>
+                    )}
+                    <ArtworkDetailContent
+                      artwork={selected}
+                      artistId={artistId}
+                      onFullscreen={handleFullscreen}
+                      onClose={() => setSelectedArtwork(null)}
+                    />
+                  </motion.div>
+                );
+              })()}
             </AnimatePresence>
           </div>
         </div>
