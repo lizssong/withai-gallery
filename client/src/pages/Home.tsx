@@ -187,7 +187,7 @@ function HomeContent() {
             className="gallery-caption tracking-widest"
             style={{ fontSize: "0.72rem", color: "#8b7355", letterSpacing: "0.18em" }}
           >
-            AI ART COLLECTIVE 2025
+            AI ART COLLECTIVE
           </p>
         </div>
 
@@ -217,7 +217,7 @@ function HomeContent() {
               { label: "기획", value: "민경 (크리메타쏭)" },
               { label: "참여 작가", value: "10인" },
               { label: "장르", value: "AI 생성 아트" },
-              { label: "시즌", value: "SPRING 2025" },
+              { label: "시즌", value: "SPRING" },
             ].map(({ label, value }) => (
               <div key={label}>
                 <p

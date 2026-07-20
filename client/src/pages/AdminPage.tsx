@@ -1346,7 +1346,7 @@ function ArtistArtworkList({
             )}
             <div className="flex-1 min-w-0">
               <p style={{ fontSize: "0.72rem", color: "rgba(240,235,224,0.7)", fontFamily: "'Noto Serif KR', serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{artwork.titleKo}</p>
-              <p className="gallery-caption" style={{ fontSize: "0.38rem", color: "rgba(201,169,110,0.4)", letterSpacing: "0.08em" }}>{artwork.year ?? "2025"} · {artwork.medium ?? "AI 아트"}</p>
+              <p className="gallery-caption" style={{ fontSize: "0.38rem", color: "rgba(201,169,110,0.4)", letterSpacing: "0.08em" }}>{artwork.year ?? ''}{artwork.year && artwork.medium ? ' · ' : ''}{artwork.medium ?? 'AI 아트'}</p>
             </div>
             <div className="flex gap-1.5 flex-shrink-0">
               <button onClick={() => onTogglePublish(artwork.id, !artwork.isPublished)} className="gallery-caption hover:opacity-80"

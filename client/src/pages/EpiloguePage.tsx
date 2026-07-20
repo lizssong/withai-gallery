@@ -62,7 +62,7 @@ export default function EpiloguePage() {
                 marginBottom: "1.2rem",
               }}
             >
-              AI 아트 컬렉티브 2025에 방문해 주셔서 감사합니다. 이번 전시는 AI라는 새로운 도구를 통해 10인의 작가가 각자의 언어로 세상을 바라보고 표현한 결과물입니다.
+              AI 아트 콜렉티브에 방문해 주셔서 감사합니다. 이번 전시는 AI라는 새로운 도구를 통해 10인의 작가가 각자의 언어로 세상을 바라보고 표현한 결과물입니다.
             </p>
             <p
               style={{
@@ -275,7 +275,7 @@ export default function EpiloguePage() {
             </a>
             {/* X(트위터) 공유 */}
             <a
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('AI 아트 컬렉티브 2025 — 10인의 작가가 AI와 함께 그려낸 상상과 감성의 세계 🎨')}&url=${encodeURIComponent(window.location.origin)}`}
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('AI 아트 콜렉티브 — 10인의 작가가 AI와 함께 그려낸 상상과 감성의 세계 🎨')}&url=${encodeURIComponent(window.location.origin)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95 no-underline"
@@ -312,7 +312,7 @@ export default function EpiloguePage() {
             className="gallery-caption mt-6"
             style={{ fontSize: "0.42rem", color: "rgba(201,169,110,0.25)", letterSpacing: "0.15em" }}
           >
-            © 2025 크리메타쏭 · AI ART COLLECTIVE · ALL RIGHTS RESERVED
+            © 크리메타송 · AI ART COLLECTIVE · ALL RIGHTS RESERVED
           </p>
         </motion.div>
       </div>

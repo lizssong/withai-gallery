@@ -108,15 +108,13 @@ export function GalleryHeader() {
       style={{ borderBottom: "1px solid rgba(201,169,110,0.15)", background: "rgba(18,18,30,0.85)", backdropFilter: "blur(12px)" }}
     >
       {/* 로고 */}
-      <Link href="/" className="flex items-center gap-2.5 no-underline">
+      <Link href="/" className="flex items-center no-underline">
         <img
-          src="https://d2xsxph8kpxj0f.cloudfront.net/114049990/oJKTjxwRFGj3Rr7fAhMRTh/gallery-logo-Re7k64PmePnMojqyRhyB4a.webp"
-          alt="갤러리 로고"
-          className="w-7 h-7 object-contain"
+          src="/manus-storage/withaisolution-logo_fbd1919e.png"
+          alt="위드AI솔루션"
+          className="h-8 w-auto object-contain"
+          style={{ filter: "brightness(0) invert(1)", maxWidth: "160px" }}
         />
-        <span className="gallery-caption gold-text tracking-widest hidden sm:block" style={{ fontSize: "0.65rem" }}>
-          AI ART COLLECTIVE
-        </span>
       </Link>
 
       {/* 중앙 네비게이션 */}

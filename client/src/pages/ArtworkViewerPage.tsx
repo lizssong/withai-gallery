@@ -381,7 +381,7 @@ export default function ArtworkViewerPage() {
                     {artwork.titleKo}
                   </h2>
                   <p className="gallery-caption mb-4" style={{ fontSize: "0.7rem", color: "rgba(201,169,110,0.6)", letterSpacing: "0.15em" }}>
-                    {(artwork.titleEn ?? '').toUpperCase()} · {artwork.year ?? "2025"}
+                    {(artwork.titleEn ?? '').toUpperCase()}{artwork.year ? ` · ${artwork.year}` : ''}
                   </p>
 
                   {/* 구분선 */}
