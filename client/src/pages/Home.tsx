@@ -158,7 +158,7 @@ function HomeContent() {
             className="gallery-caption tracking-widest mb-1"
             style={{ fontSize: "0.72rem", color: "#8b7355", letterSpacing: "0.2em" }}
           >
-            크리메타쏭 × AI ART GALLERY
+            위드AI솔루션 × AI ART GALLERY
           </p>
           <div
             style={{
