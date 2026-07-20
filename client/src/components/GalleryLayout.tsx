@@ -148,9 +148,7 @@ export function GalleryHeader() {
             </span>
           </button>
         )}
-        <span className="gallery-caption gold-text tracking-widest" style={{ fontSize: "0.55rem" }}>
-          SPRING 2025
-        </span>
+
       </div>
     </header>
   );
@@ -171,9 +169,9 @@ function AuthButton({ location }: { location: string }) {
             href="/admin"
             className="gallery-caption transition-all duration-200 no-underline"
             style={{
-              fontSize: "0.5rem",
-              letterSpacing: "0.15em",
-              color: location === "/admin" ? "#c9a96e" : "rgba(201,169,110,0.55)",
+              fontSize: "0.75rem",
+              letterSpacing: "0.1em",
+              color: location === "/admin" ? "#c9a96e" : "rgba(201,169,110,0.7)",
               borderBottom: location === "/admin" ? "1px solid rgba(201,169,110,0.5)" : "1px solid transparent",
               paddingBottom: "2px",
             }}
@@ -185,9 +183,9 @@ function AuthButton({ location }: { location: string }) {
           href="/my"
           className="gallery-caption transition-all duration-200 no-underline"
           style={{
-            fontSize: "0.5rem",
-            letterSpacing: "0.15em",
-            color: location === "/my" ? "#c9a96e" : "rgba(240,235,224,0.5)",
+            fontSize: "0.75rem",
+            letterSpacing: "0.1em",
+            color: location === "/my" ? "#c9a96e" : "rgba(240,235,224,0.65)",
             borderBottom: location === "/my" ? "1px solid rgba(201,169,110,0.5)" : "1px solid transparent",
             paddingBottom: "2px",
           }}
@@ -200,9 +198,9 @@ function AuthButton({ location }: { location: string }) {
           style={{
             background: "none",
             border: "none",
-            fontSize: "0.5rem",
-            letterSpacing: "0.15em",
-            color: "rgba(240,235,224,0.35)",
+            fontSize: "0.75rem",
+            letterSpacing: "0.1em",
+            color: "rgba(240,235,224,0.5)",
             cursor: "pointer",
             paddingBottom: "2px",
           }}
@@ -218,11 +216,11 @@ function AuthButton({ location }: { location: string }) {
       href={getLoginUrl()}
       className="gallery-caption transition-all duration-200 no-underline hover:opacity-80"
       style={{
-        fontSize: "0.5rem",
-        letterSpacing: "0.15em",
-        color: "rgba(240,235,224,0.45)",
-        border: "1px solid rgba(201,169,110,0.2)",
-        padding: "3px 8px",
+        fontSize: "0.75rem",
+        letterSpacing: "0.1em",
+        color: "rgba(240,235,224,0.7)",
+        border: "1px solid rgba(201,169,110,0.3)",
+        padding: "4px 10px",
       }}
     >
       LOGIN
@@ -236,14 +234,15 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
       href={href}
       className="gallery-caption transition-all duration-200 no-underline"
       style={{
-        fontSize: "0.6rem",
-        letterSpacing: "0.2em",
-        color: active ? "#c9a96e" : "rgba(240,235,224,0.5)",
-        borderBottom: active ? "1px solid rgba(201,169,110,0.5)" : "1px solid transparent",
+        fontSize: "0.82rem",
+        letterSpacing: "0.12em",
+        color: active ? "#c9a96e" : "rgba(240,235,224,0.75)",
+        borderBottom: active ? "1px solid rgba(201,169,110,0.6)" : "1px solid transparent",
         paddingBottom: "2px",
+        fontWeight: active ? 600 : 400,
       }}
     >
-      {label.toUpperCase()}
+      {label}
     </Link>
   );
 }

@@ -52,6 +52,11 @@ const galleryRouter = router({
     if (!w) throw new TRPCError({ code: "NOT_FOUND" });
     return w;
   }),
+  // 슬라이드쇼용: 모든 작가의 이미지 작품 목록
+  listAllArtworks: publicProcedure.query(async () => {
+    const all = await getAllArtworks();
+    return all.filter(a => a.mediaType === "image" && (a.thumbnailUrl || a.mediaUrl));
+  }),
 });
 
 const artistRouter = router({
