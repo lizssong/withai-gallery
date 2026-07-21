@@ -45,7 +45,7 @@ function HomeContent() {
   const handleEnter = async () => {
     setEntering(true);
     await startBgm();
-    setTimeout(() => setLocation("/artists"), 800);
+    setTimeout(() => setLocation("/gallery"), 800);
   };
 
   const currentSlide = slideImages[slideIndex];
