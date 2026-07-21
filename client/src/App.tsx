@@ -14,6 +14,7 @@ import AdminPage from "./pages/AdminPage";
 import InvitePage from "./pages/InvitePage";
 import ExhibitionsPage from "./pages/ExhibitionsPage";
 import ExhibitionDetailPage from "./pages/ExhibitionDetailPage";
+import GalleryBrowsePage from "./pages/GalleryBrowsePage";
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/my" component={MyPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/invite/:token" component={InvitePage} />
+      <Route path="/gallery" component={GalleryBrowsePage} />
       <Route path="/exhibitions" component={ExhibitionsPage} />
       <Route path="/exhibition/:slug" component={ExhibitionDetailPage} />
       <Route path="/404" component={NotFound} />
