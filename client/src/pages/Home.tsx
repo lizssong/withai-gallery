@@ -266,7 +266,7 @@ function HomeContent() {
         {/* 전시회 목록 바로가기 */}
         <div className="text-center mt-3">
           <button
-            onClick={() => setLocation("/exhibitions")}
+            onClick={() => setLocation("/gallery")}
             className="gallery-caption transition-all duration-200 hover:opacity-80"
             style={{
               background: "none",
@@ -279,7 +279,7 @@ function HomeContent() {
               width: "100%",
             }}
           >
-            모든 전시회 보기 →
+            갤러리 더 보기 →
           </button>
         </div>
 
