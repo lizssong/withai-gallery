@@ -7,6 +7,7 @@ import { useLocation, useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { GalleryLayout } from "@/components/GalleryLayout";
 import { trpc } from "@/lib/trpc";
+import ZoomableImage from "@/components/ZoomableImage";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -247,16 +248,20 @@ export default function ArtworkViewerPage() {
                   style={{ background: "rgba(0,0,0,0.95)", cursor: "zoom-out" }}
                   onClick={() => setLightbox(false)}
                 >
-                  <motion.img
+                  <motion.div
                     initial={{ scale: 0.92, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.92, opacity: 0 }}
                     transition={{ duration: 0.3, ease: [0.23,1,0.32,1] }}
-                    src={artwork.mediaUrl ?? artwork.thumbnailUrl ?? ""}
-                    alt={artwork.titleKo}
                     onClick={e => e.stopPropagation()}
-                    style={{ maxWidth: "95vw", maxHeight: "95vh", objectFit: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.8)", cursor: "default" }}
-                  />
+                    style={{ maxWidth: "95vw", maxHeight: "95vh", width: "90vw", boxShadow: "0 30px 80px rgba(0,0,0,0.8)" }}
+                  >
+                    <ZoomableImage
+                      src={artwork.mediaUrl ?? artwork.thumbnailUrl ?? ""}
+                      alt={artwork.titleKo}
+                      style={{ width: "100%", height: "90vh" }}
+                    />
+                  </motion.div>
                   <button
                     onClick={() => setLightbox(false)}
                     className="absolute top-4 right-4 gallery-caption transition-all hover:opacity-70"
@@ -296,13 +301,10 @@ export default function ArtworkViewerPage() {
                     style={{ maxHeight: "calc(100vh - 14rem)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}
                   />
                 ) : (
-                  <img
+                  <ZoomableImage
                     src={artwork.mediaUrl ?? artwork.thumbnailUrl ?? ""}
                     alt={artwork.titleKo}
-                    className="w-full object-contain transition-all duration-200 hover:opacity-90"
-                    style={{ maxHeight: "calc(100vh - 14rem)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)", cursor: "zoom-in" }}
-                    onClick={() => setLightbox(true)}
-                    title="클릭하여 확대"
+                    style={{ maxHeight: "calc(100vh - 14rem)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}
                   />
                 )}
               </motion.div>

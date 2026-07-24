@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { GalleryLayout } from "@/components/GalleryLayout";
+import ZoomableImage from "@/components/ZoomableImage";
 
 interface Artwork {
   id: number;
@@ -111,18 +112,13 @@ function Lightbox({
         style={{ borderRadius: "4px", border: "1px solid rgba(201,169,110,0.15)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 이미지 영역 */}
-        <div
-          className="flex-1 flex items-center justify-center min-h-0"
-          style={{ background: "#0a0a14", maxHeight: "90vh" }}
-        >
-          <img
-            src={artwork.mediaUrl ?? ""}
-            alt={artwork.titleKo ?? ""}
-            className="object-contain w-full h-full"
-            style={{ maxHeight: "90vh", maxWidth: "100%" }}
-          />
-        </div>
+        {/* 이미지 영역 — ZoomableImage */}
+        <ZoomableImage
+          src={artwork.mediaUrl ?? ""}
+          alt={artwork.titleKo ?? ""}
+          className="flex-1 min-h-0"
+          style={{ background: "#0a0a14", maxHeight: "90vh", minHeight: "300px" }}
+        />
 
         {/* 정보 패널 */}
         <div
