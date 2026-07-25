@@ -1,298 +1,541 @@
 /**
- * Home — 전시회 초대장 페이지
- * Design: "Ink & Light" — 먹빛 배경, 화선지 카드, 주홍 씰
- * 배경: 전체 작품 자동 슬라이드쇼 (5초 간격 크로스페이드)
+ * Home — AI 아트 갤러리 시네마틱 입장 화면
+ * Design: "Cosmic Gallery" — 풀스크린 작품 슬라이드쇼 + Canvas 파티클 + 웅장한 타이틀
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "wouter";
-import { GalleryLayout, useBgm } from "@/components/GalleryLayout";
-import { BgmProvider } from "@/components/GalleryLayout";
+import { GalleryLayout, useBgm, BgmProvider } from "@/components/GalleryLayout";
 import { trpc } from "@/lib/trpc";
 
+// ── Canvas 파티클 시스템 ──────────────────────────────────────────────────────
+function ParticleCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -9999, y: -9999 });
+  const animRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let W = window.innerWidth;
+    let H = window.innerHeight;
+    canvas.width = W;
+    canvas.height = H;
+
+    const onResize = () => {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W;
+      canvas.height = H;
+    };
+    window.addEventListener("resize", onResize);
+
+    const onMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("mousemove", onMouseMove);
+
+    // 파티클 생성
+    interface Particle {
+      x: number; y: number;
+      vx: number; vy: number;
+      size: number; alpha: number;
+      baseAlpha: number; pulse: number;
+      color: string;
+    }
+
+    const COLORS = [
+      "rgba(201,169,110,",   // 골드
+      "rgba(180,140,255,",   // 보라
+      "rgba(100,200,255,",   // 청록
+      "rgba(255,255,255,",   // 흰
+    ];
+
+    const particles: Particle[] = Array.from({ length: 120 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3 - 0.1,
+      size: Math.random() * 2.2 + 0.4,
+      alpha: 0,
+      baseAlpha: Math.random() * 0.6 + 0.15,
+      pulse: Math.random() * Math.PI * 2,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    }));
+
+    // 빛줄기 (레이)
+    interface Ray {
+      x: number; y: number; angle: number;
+      len: number; alpha: number; speed: number;
+    }
+    const rays: Ray[] = Array.from({ length: 6 }, () => ({
+      x: W / 2 + (Math.random() - 0.5) * W * 0.3,
+      y: H * 0.4,
+      angle: (Math.random() - 0.5) * 0.8,
+      len: H * (0.4 + Math.random() * 0.4),
+      alpha: Math.random() * 0.04 + 0.01,
+      speed: (Math.random() - 0.5) * 0.002,
+    }));
+
+    let t = 0;
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      t += 0.012;
+
+      // 빛줄기
+      rays.forEach((r) => {
+        r.angle += r.speed;
+        const grd = ctx.createLinearGradient(
+          r.x, r.y,
+          r.x + Math.sin(r.angle) * r.len,
+          r.y + Math.cos(r.angle) * r.len
+        );
+        grd.addColorStop(0, `rgba(201,169,110,${r.alpha * 3})`);
+        grd.addColorStop(0.4, `rgba(201,169,110,${r.alpha})`);
+        grd.addColorStop(1, "rgba(201,169,110,0)");
+        ctx.beginPath();
+        ctx.moveTo(r.x, r.y);
+        ctx.lineTo(
+          r.x + Math.sin(r.angle) * r.len,
+          r.y + Math.cos(r.angle) * r.len
+        );
+        ctx.strokeStyle = grd;
+        ctx.lineWidth = 60 + Math.sin(t) * 20;
+        ctx.stroke();
+      });
+
+      // 파티클
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+
+      particles.forEach((p) => {
+        p.pulse += 0.025;
+        p.alpha = p.baseAlpha * (0.6 + 0.4 * Math.sin(p.pulse));
+
+        // 마우스 인력 (부드럽게 끌림)
+        const dx = mx - p.x;
+        const dy = my - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 180) {
+          const force = (180 - dist) / 180;
+          p.vx += dx * force * 0.0003;
+          p.vy += dy * force * 0.0003;
+        }
+
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // 경계 처리
+        if (p.x < 0) p.x = W;
+        if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H;
+        if (p.y > H) p.y = 0;
+
+        // 글로우 효과
+        ctx.shadowBlur = p.size * 4;
+        ctx.shadowColor = p.color + "0.8)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + p.alpha + ")";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // 가까운 파티클 연결선
+        particles.forEach((p2) => {
+          const ddx = p2.x - p.x;
+          const ddy = p2.y - p.y;
+          const d = Math.sqrt(ddx * ddx + ddy * ddy);
+          if (d < 80 && d > 0) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(201,169,110,${0.06 * (1 - d / 80)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+
+      animRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("mousemove", onMouseMove);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none"
+      style={{ zIndex: 3 }}
+    />
+  );
+}
+
+// ── 메인 홈 콘텐츠 ────────────────────────────────────────────────────────────
 function HomeContent() {
   const [, setLocation] = useLocation();
   const { startBgm } = useBgm();
   const [entering, setEntering] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
-  // ── 슬라이드쇼 상태 ──────────────────────────────────────────────────────
+  // 슬라이드쇼 상태
   const [slideIndex, setSlideIndex] = useState(0);
-  const [prevIndex, setPrevIndex] = useState<number | null>(null);
-  const [fading, setFading] = useState(false);
+  const [nextIndex, setNextIndex] = useState<number | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
 
-  // 모든 작가의 이미지 작품 목록 (슬라이드쇼용)
   const { data: allArtworks } = trpc.gallery.listAllArtworks.useQuery();
-
-  // 슬라이드 이미지 목록 — 이미지 타입 작품만 (서버에서 이미 필터됨)
   const slideImages = (allArtworks ?? []).map((a) => ({
-    url: a.thumbnailUrl ?? a.mediaUrl ?? "",
+    url: a.mediaUrl ?? a.thumbnailUrl ?? "",
     title: a.titleKo,
   }));
 
-  // 5초마다 슬라이드 전환
+  // 타이틀 등장 애니메이션 트리거
+  useEffect(() => {
+    const t = setTimeout(() => setRevealed(true), 300);
+    return () => clearTimeout(t);
+  }, []);
+
+  // 슬라이드 전환 (6초 간격, 켄번스 효과)
   useEffect(() => {
     if (slideImages.length < 2) return;
     const timer = setInterval(() => {
-      setFading(true);
+      const next = (slideIndex + 1) % slideImages.length;
+      setNextIndex(next);
+      setTransitioning(true);
       setTimeout(() => {
-        setPrevIndex(slideIndex);
-        setSlideIndex((prev) => (prev + 1) % slideImages.length);
-        setFading(false);
-      }, 800);
-    }, 5000);
+        setSlideIndex(next);
+        setNextIndex(null);
+        setTransitioning(false);
+      }, 1200);
+    }, 6000);
     return () => clearInterval(timer);
   }, [slideImages.length, slideIndex]);
 
-  const handleEnter = async () => {
+  const handleEnter = useCallback(async () => {
     setEntering(true);
     await startBgm();
-    setTimeout(() => setLocation("/gallery"), 800);
-  };
+    setTimeout(() => setLocation("/gallery"), 1000);
+  }, [startBgm, setLocation]);
 
-  const currentSlide = slideImages[slideIndex];
+  const cur = slideImages[slideIndex];
+  const nxt = nextIndex !== null ? slideImages[nextIndex] : null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-16 relative overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden" style={{ background: "#04040c" }}>
 
-      {/* ── 배경 슬라이드쇼 ── */}
-      {currentSlide && (
-        <div className="fixed inset-0 z-0">
+      {/* ── 레이어 1: 배경 슬라이드쇼 (켄번스) ── */}
+      {cur && (
+        <div className="absolute inset-0" style={{ zIndex: 1 }}>
           {/* 현재 슬라이드 */}
           <img
-            key={slideIndex}
-            src={currentSlide.url}
-            alt={currentSlide.title}
+            key={`cur-${slideIndex}`}
+            src={cur.url}
+            alt={cur.title ?? ""}
             className="absolute inset-0 w-full h-full object-cover"
             style={{
-              opacity: fading ? 0 : 1,
-              transition: "opacity 0.8s cubic-bezier(0.23,1,0.32,1)",
-              filter: "brightness(0.22) saturate(0.6)",
+              opacity: transitioning ? 0 : 1,
+              transition: "opacity 1.2s ease-in-out",
+              filter: "brightness(0.38) saturate(0.75)",
+              transform: "scale(1.06)",
+              animation: "kenburns 12s ease-in-out infinite alternate",
             }}
           />
-          {/* 다크 오버레이 */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "radial-gradient(ellipse 100% 80% at 50% 0%, rgba(201,169,110,0.04) 0%, rgba(12,10,20,0.72) 60%)",
-            }}
-          />
+          {/* 다음 슬라이드 (페이드인) */}
+          {nxt && (
+            <img
+              key={`nxt-${nextIndex}`}
+              src={nxt.url}
+              alt={nxt.title ?? ""}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{
+                opacity: transitioning ? 1 : 0,
+                transition: "opacity 1.2s ease-in-out",
+                filter: "brightness(0.38) saturate(0.75)",
+                transform: "scale(1.06)",
+              }}
+            />
+          )}
         </div>
       )}
 
-      {/* 슬라이드쇼 없을 때 기본 배경 */}
-      {!currentSlide && (
+      {/* 기본 배경 (이미지 없을 때) */}
+      {!cur && (
         <div
-          className="fixed inset-0 z-0"
-          style={{ background: "radial-gradient(ellipse 100% 80% at 50% 0%, rgba(201,169,110,0.06) 0%, #12121e 55%)" }}
+          className="absolute inset-0"
+          style={{
+            zIndex: 1,
+            background: "radial-gradient(ellipse 120% 100% at 50% 30%, #1a0a2e 0%, #04040c 70%)",
+          }}
         />
       )}
 
-      {/* 배경 파티클 */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
-        {[...Array(18)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: `${Math.random() * 2 + 1}px`,
-              height: `${Math.random() * 2 + 1}px`,
-              background: "rgba(201,169,110,0.25)",
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float ${4 + Math.random() * 6}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* 슬라이드 인디케이터 — 하단 중앙 */}
-      {slideImages.length > 1 && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10"
-        >
-          {slideImages.map((_item, i) => (
-            <button
-              key={i}
-              onClick={() => { setPrevIndex(slideIndex); setSlideIndex(i); }}
-              style={{
-                width: i === slideIndex ? "20px" : "6px",
-                height: "4px",
-                borderRadius: "2px",
-                background: i === slideIndex ? "#c9a96e" : "rgba(201,169,110,0.3)",
-                border: "none",
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                padding: 0,
-              }}
-              aria-label={`슬라이드 ${i + 1}`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* ── 초대장 카드 ── */}
+      {/* ── 레이어 2: 그라디언트 오버레이 ── */}
       <div
-        className="relative w-full max-w-md z-10"
+        className="absolute inset-0"
         style={{
-          background: "linear-gradient(160deg, #f5f0e8 0%, #ede8dc 100%)",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,169,110,0.2)",
-          padding: "3rem 2.5rem 2.5rem",
-          animation: "fadeInUp 0.9s cubic-bezier(0.23,1,0.32,1) both",
+          zIndex: 2,
+          background: [
+            "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(120,80,200,0.18) 0%, transparent 60%)",
+            "radial-gradient(ellipse 60% 50% at 50% 100%, rgba(0,0,0,0.9) 0%, transparent 70%)",
+            "linear-gradient(to bottom, rgba(4,4,12,0.3) 0%, rgba(4,4,12,0.1) 40%, rgba(4,4,12,0.7) 80%, rgba(4,4,12,0.95) 100%)",
+          ].join(", "),
         }}
+      />
+
+      {/* ── 레이어 3: Canvas 파티클 ── */}
+      <ParticleCanvas />
+
+      {/* ── 레이어 4: 메인 콘텐츠 ── */}
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center"
+        style={{ zIndex: 10 }}
       >
-        {/* 씰 스탬프 */}
+        {/* 상단 브랜드 라인 */}
         <div
-          className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center"
+          className="flex items-center gap-4 mb-10"
           style={{
-            background: "radial-gradient(circle, #c0392b 60%, #922b21 100%)",
-            boxShadow: "0 4px 16px rgba(192,57,43,0.5)",
-            border: "2px solid rgba(255,255,255,0.2)",
+            opacity: revealed ? 1 : 0,
+            transform: revealed ? "translateY(0)" : "translateY(-20px)",
+            transition: "all 1.2s cubic-bezier(0.23,1,0.32,1) 0.2s",
           }}
         >
-          <span style={{ color: "#fff", fontSize: "1.2rem" }}>✦</span>
-        </div>
-
-        {/* 브랜드 */}
-        <div className="text-center mb-6">
-          <p
-            className="gallery-caption tracking-widest mb-1"
-            style={{ fontSize: "0.72rem", color: "#8b7355", letterSpacing: "0.2em" }}
+          <div style={{ width: "40px", height: "1px", background: "rgba(201,169,110,0.5)" }} />
+          <span
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "0.65rem",
+              letterSpacing: "0.35em",
+              color: "rgba(201,169,110,0.7)",
+              textTransform: "uppercase",
+            }}
           >
             위드AI솔루션 × AI ART GALLERY
-          </p>
-          <div
-            style={{
-              height: "1px",
-              background: "linear-gradient(90deg, transparent, rgba(139,115,85,0.4), transparent)",
-              margin: "0.75rem 0",
-            }}
-          />
-          <p
-            className="gallery-caption tracking-widest"
-            style={{ fontSize: "0.65rem", color: "#a08060", letterSpacing: "0.18em" }}
-          >
-            INVITATION
-          </p>
+          </span>
+          <div style={{ width: "40px", height: "1px", background: "rgba(201,169,110,0.5)" }} />
         </div>
 
-        {/* 전시 제목 */}
-        <div className="text-center mb-6">
+        {/* 메인 타이틀 */}
+        <div
+          className="text-center mb-4 px-4"
+          style={{
+            opacity: revealed ? 1 : 0,
+            transform: revealed ? "translateY(0) scale(1)" : "translateY(30px) scale(0.96)",
+            transition: "all 1.4s cubic-bezier(0.23,1,0.32,1) 0.4s",
+          }}
+        >
           <h1
-            className="gallery-title"
-            style={{ fontSize: "1.9rem", color: "#2c1f0e", lineHeight: 1.25, marginBottom: "0.4rem" }}
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(2.8rem, 8vw, 6.5rem)",
+              fontWeight: 700,
+              lineHeight: 1.1,
+              letterSpacing: "0.04em",
+              background: "linear-gradient(135deg, #f0e6c8 0%, #c9a96e 40%, #e8d5a0 70%, #ffffff 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              textShadow: "none",
+              marginBottom: "0.5rem",
+            }}
           >
             AI 아트 컬렉티브
           </h1>
           <p
-            className="gallery-caption tracking-widest"
-            style={{ fontSize: "0.72rem", color: "#8b7355", letterSpacing: "0.18em" }}
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(0.75rem, 2vw, 1rem)",
+              letterSpacing: "0.5em",
+              color: "rgba(201,169,110,0.55)",
+              textTransform: "uppercase",
+            }}
           >
             AI ART COLLECTIVE
           </p>
         </div>
 
         {/* 구분선 */}
-        <div className="flex items-center gap-3 mb-5">
-          <div style={{ flex: 1, height: "1px", background: "rgba(139,115,85,0.25)" }} />
+        <div
+          className="flex items-center gap-4 mb-8"
+          style={{
+            opacity: revealed ? 1 : 0,
+            transition: "opacity 1.2s ease 0.7s",
+          }}
+        >
+          <div
+            style={{
+              width: "clamp(40px, 8vw, 80px)",
+              height: "1px",
+              background: "linear-gradient(to right, transparent, rgba(201,169,110,0.6))",
+            }}
+          />
           <span style={{ color: "#c9a96e", fontSize: "0.7rem" }}>✦</span>
-          <div style={{ flex: 1, height: "1px", background: "rgba(139,115,85,0.25)" }} />
+          <div
+            style={{
+              width: "clamp(40px, 8vw, 80px)",
+              height: "1px",
+              background: "linear-gradient(to left, transparent, rgba(201,169,110,0.6))",
+            }}
+          />
         </div>
 
-        {/* 초대 문구 */}
+        {/* 서브 카피 */}
         <p
-          className="text-center mb-6 leading-relaxed"
-          style={{ fontSize: "0.95rem", color: "#4a3728", fontFamily: "'Noto Serif KR', serif" }}
+          className="text-center mb-12 px-6"
+          style={{
+            fontFamily: "'Noto Serif KR', serif",
+            fontSize: "clamp(0.9rem, 2.2vw, 1.15rem)",
+            color: "rgba(220,210,195,0.75)",
+            lineHeight: 1.8,
+            letterSpacing: "0.04em",
+            maxWidth: "520px",
+            opacity: revealed ? 1 : 0,
+            transform: revealed ? "translateY(0)" : "translateY(15px)",
+            transition: "all 1.2s cubic-bezier(0.23,1,0.32,1) 0.9s",
+          }}
         >
           10인의 작가가 AI와 함께 그려낸<br />
-          상상과 감성의 세계로 초대합니다.
-        </p>
-
-        {/* 전시 정보 */}
-        <div
-          className="mb-6 py-3 px-4"
-          style={{ background: "rgba(139,115,85,0.08)", border: "1px solid rgba(139,115,85,0.15)" }}
-        >
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: "기획", value: "민경 (크리메타쏭)" },
-              { label: "참여 작가", value: "10인" },
-              { label: "장르", value: "AI 생성 아트" },
-              { label: "시즌", value: "SPRING" },
-            ].map(({ label, value }) => (
-              <div key={label}>
-                <p
-                  className="gallery-caption"
-                  style={{ fontSize: "0.6rem", color: "#8b7355", letterSpacing: "0.12em", marginBottom: "1px" }}
-                >
-                  {label}
-                </p>
-                <p style={{ fontSize: "0.85rem", color: "#2c1f0e", fontFamily: "'Noto Serif KR', serif", fontWeight: 600 }}>
-                  {value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* BGM 안내 */}
-        <p
-          className="text-center gallery-caption mb-4"
-          style={{ fontSize: "0.65rem", color: "#a08060", letterSpacing: "0.1em" }}
-        >
-          ♪ 입장 시 잔잔한 배경음악이 재생됩니다
+          <span style={{ color: "rgba(201,169,110,0.85)" }}>상상과 감성의 세계</span>로 초대합니다
         </p>
 
         {/* 입장 버튼 */}
-        <button
-          onClick={handleEnter}
-          disabled={entering}
-          className="w-full transition-all duration-300 active:scale-95"
+        <div
           style={{
-            background: entering
-              ? "rgba(44,31,14,0.5)"
-              : "linear-gradient(135deg, #2c1f0e 0%, #4a3728 100%)",
-            color: "#c9a96e",
-            border: "1px solid rgba(201,169,110,0.4)",
-            padding: "0.9rem",
-            letterSpacing: "0.25em",
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "0.85rem",
-            cursor: entering ? "not-allowed" : "pointer",
+            opacity: revealed ? 1 : 0,
+            transform: revealed ? "translateY(0)" : "translateY(20px)",
+            transition: "all 1.2s cubic-bezier(0.23,1,0.32,1) 1.1s",
           }}
         >
-          {entering ? "입장 중..." : "전시회 입장하기"}
-        </button>
-
-        {/* 전시회 목록 바로가기 */}
-        <div className="text-center mt-3">
           <button
-            onClick={() => setLocation("/gallery")}
-            className="gallery-caption transition-all duration-200 hover:opacity-80"
+            onClick={handleEnter}
+            disabled={entering}
+            className="group relative overflow-hidden"
             style={{
-              background: "none",
-              border: "1px solid rgba(139,115,85,0.3)",
-              color: "#6b5340",
-              padding: "7px 18px",
-              fontSize: "0.75rem",
-              letterSpacing: "0.15em",
-              cursor: "pointer",
-              width: "100%",
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(0.75rem, 1.5vw, 0.9rem)",
+              letterSpacing: "0.4em",
+              color: entering ? "rgba(201,169,110,0.5)" : "#c9a96e",
+              background: "transparent",
+              border: "1px solid rgba(201,169,110,0.5)",
+              padding: "1rem 3rem",
+              cursor: entering ? "not-allowed" : "pointer",
+              transition: "all 0.4s cubic-bezier(0.23,1,0.32,1)",
+              textTransform: "uppercase",
+              position: "relative",
+            }}
+            onMouseEnter={(e) => {
+              if (!entering) {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(201,169,110,0.1)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(201,169,110,0.9)";
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 0 30px rgba(201,169,110,0.2), inset 0 0 30px rgba(201,169,110,0.05)";
+                (e.currentTarget as HTMLButtonElement).style.color = "#e8d5a0";
+              }
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(201,169,110,0.5)";
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+              (e.currentTarget as HTMLButtonElement).style.color = "#c9a96e";
             }}
           >
-            갤러리 더 보기 →
+            {/* 버튼 코너 장식 */}
+            <span className="absolute top-0 left-0 w-2 h-2 border-t border-l" style={{ borderColor: "rgba(201,169,110,0.7)" }} />
+            <span className="absolute top-0 right-0 w-2 h-2 border-t border-r" style={{ borderColor: "rgba(201,169,110,0.7)" }} />
+            <span className="absolute bottom-0 left-0 w-2 h-2 border-b border-l" style={{ borderColor: "rgba(201,169,110,0.7)" }} />
+            <span className="absolute bottom-0 right-0 w-2 h-2 border-b border-r" style={{ borderColor: "rgba(201,169,110,0.7)" }} />
+            {entering ? "ENTERING..." : "ENTER GALLERY"}
           </button>
+
+          {/* 보조 링크 */}
+          <div className="text-center mt-5">
+            <button
+              onClick={() => setLocation("/gallery")}
+              style={{
+                background: "none",
+                border: "none",
+                fontFamily: "'Playfair Display', serif",
+                fontSize: "0.65rem",
+                letterSpacing: "0.3em",
+                color: "rgba(201,169,110,0.4)",
+                cursor: "pointer",
+                textTransform: "uppercase",
+                transition: "color 0.3s ease",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(201,169,110,0.75)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(201,169,110,0.4)"; }}
+            >
+              갤러리 바로가기 ↓
+            </button>
+          </div>
         </div>
 
-        {/* 하단 장식 */}
-        <div className="text-center mt-3">
+        {/* 하단 정보 */}
+        <div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3"
+          style={{
+            opacity: revealed ? 1 : 0,
+            transition: "opacity 1.5s ease 1.5s",
+          }}
+        >
+          {/* 슬라이드 인디케이터 */}
+          {slideImages.length > 1 && (
+            <div className="flex items-center gap-1.5">
+              {slideImages.slice(0, Math.min(slideImages.length, 12)).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setNextIndex(i);
+                    setTransitioning(true);
+                    setTimeout(() => { setSlideIndex(i); setNextIndex(null); setTransitioning(false); }, 1200);
+                  }}
+                  style={{
+                    width: i === slideIndex ? "18px" : "5px",
+                    height: "2px",
+                    borderRadius: "1px",
+                    background: i === slideIndex ? "rgba(201,169,110,0.8)" : "rgba(201,169,110,0.25)",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.4s ease",
+                    padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+          )}
           <p
-            className="gallery-caption"
-            style={{ fontSize: "0.6rem", color: "#b09070", letterSpacing: "0.12em" }}
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "0.58rem",
+              letterSpacing: "0.25em",
+              color: "rgba(201,169,110,0.3)",
+              textTransform: "uppercase",
+            }}
           >
-            CURATED BY MIN-KYUNG · CRIMETASONG
+            ♪ 입장 시 배경음악이 재생됩니다 &nbsp;·&nbsp; CURATED BY MIN-KYUNG
           </p>
         </div>
       </div>
+
+      {/* 켄번스 + 입장 전환 애니메이션 CSS */}
+      <style>{`
+        @keyframes kenburns {
+          0%   { transform: scale(1.06) translate(0px, 0px); }
+          100% { transform: scale(1.12) translate(-10px, -5px); }
+        }
+        @keyframes enterFlash {
+          0%   { opacity: 0; }
+          30%  { opacity: 1; }
+          100% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
