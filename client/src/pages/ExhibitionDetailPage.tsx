@@ -73,7 +73,7 @@ export default function ExhibitionDetailPage() {
   return (
     <GalleryLayout>
       {/* BGM */}
-      <audio ref={audioRef} loop preload="none" src="/manus-storage/gallery-bgm_b9e12943.mp3" />
+      <audio ref={audioRef} preload="none" src="/manus-storage/gallery-bgm_99faee5a.mp3" />
 
       <AnimatePresence mode="wait">
         {!entered ? (
