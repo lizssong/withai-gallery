@@ -150,9 +150,9 @@ export default function ExhibitionDetailPage() {
               </div>
 
               <div className="text-center">
-                {/* 크리메타쏭 × AI ART GALLERY 브랜딩 */}
+                {/* 위드AI솔루션 × AI ART GALLERY 브랜딩 */}
                 <p style={{ fontSize: "0.45rem", color: "rgba(60,50,40,0.35)", fontFamily: "sans-serif", letterSpacing: "0.25em", marginBottom: "0.5rem", marginTop: "0.5rem" }}>
-                  크리메타쏭 × AI ART GALLERY
+                  위드AI솔루션 × AI ART GALLERY
                 </p>
                 <p style={{ fontSize: "0.5rem", color: "rgba(60,50,40,0.45)", fontFamily: "sans-serif", letterSpacing: "0.3em", marginBottom: "1.5rem" }}>
                   {exhibition.season ? `${exhibition.season} — INVITATION` : "ONLINE EXHIBITION — INVITATION"}

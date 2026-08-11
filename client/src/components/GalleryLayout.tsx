@@ -16,6 +16,8 @@ interface BgmContextType {
   isMuted: boolean;
   isPlaying: boolean;
   toggleMute: () => void;
+  volume: number;
+  setVolume: (v: number) => void;
 }
 
 const BgmContext = createContext<BgmContextType>({
@@ -24,6 +26,8 @@ const BgmContext = createContext<BgmContextType>({
   isMuted: false,
   isPlaying: false,
   toggleMute: () => {},
+  volume: 0.42,
+  setVolume: () => {},
 });
 
 export const useBgm = () => useContext(BgmContext);
@@ -33,6 +37,7 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolumeState] = useState(0.42);
 
   useEffect(() => {
     const audio = new Audio(BGM_URL);
@@ -84,13 +89,22 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
-      fadeVolume(prev ? 0.42 : 0, 600);
+      const audio = audioRef.current;
+      if (audio) audio.volume = prev ? volume : 0;
       return !prev;
     });
-  }, [fadeVolume]);
+  }, [volume]);
+
+  const setVolume = useCallback((v: number) => {
+    setVolumeState(v);
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = v;
+    if (v > 0) setIsMuted(false);
+  }, []);
 
   return (
-    <BgmContext.Provider value={{ startBgm, stopBgm, isMuted, isPlaying, toggleMute }}>
+    <BgmContext.Provider value={{ startBgm, stopBgm, isMuted, isPlaying, toggleMute, volume, setVolume }}>
       {children}
     </BgmContext.Provider>
   );
@@ -99,8 +113,8 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
 // ── GalleryHeader ────────────────────────────────────────────────────────────
 export function GalleryHeader() {
   const [location] = useLocation();
-  const { isMuted, isPlaying, toggleMute } = useBgm();
-  const isHome = location === "/";
+  const { isMuted, isPlaying, toggleMute, volume, setVolume } = useBgm();
+  const [showVolume, setShowVolume] = useState(false);
 
   return (
     <header
@@ -146,6 +160,38 @@ export function GalleryHeader() {
               {isMuted ? "MUTED" : "♪ BGM"}
             </span>
           </button>
+        )}
+        {isPlaying && (
+          <div className="relative">
+            <button
+              onClick={() => setShowVolume((v) => !v)}
+              className="flex items-center transition-all duration-200 hover:opacity-80 active:scale-95"
+              style={{ background: "none", border: "none", color: "rgba(201,169,110,0.65)", cursor: "pointer", padding: "4px 5px" }}
+              aria-label="음량 조절"
+            >
+              <VolumeIcon muted={isMuted} />
+            </button>
+            {showVolume && (
+              <div
+                className="absolute right-0 top-9 flex flex-col items-center gap-2 p-3"
+                style={{ background: "rgba(12,10,20,0.96)", border: "1px solid rgba(201,169,110,0.3)", borderRadius: "4px", zIndex: 200, minWidth: "52px" }}
+              >
+                <span className="gallery-caption" style={{ fontSize: "0.44rem", color: "rgba(201,169,110,0.6)", letterSpacing: "0.08em" }}>
+                  {Math.round(volume * 100)}%
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.02}
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className="volume-slider"
+                  style={{ writingMode: "vertical-lr" as const, direction: "rtl" as const, width: "4px", height: "72px", cursor: "pointer", accentColor: "#c9a96e" }}
+                />
+              </div>
+            )}
+          </div>
         )}
 
       </div>
@@ -249,21 +295,33 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
 // ── GalleryLayout ────────────────────────────────────────────────────────────
 export function GalleryLayout({ children }: { children: React.ReactNode }) {
   return (
-    <BgmProvider>
-      <div className="min-h-screen ink-bg">
-        {/* 배경 빛 효과 */}
-        <div
-          className="fixed inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201,169,110,0.05) 0%, transparent 70%)" }}
-        />
-        <GalleryHeader />
-        <main className="pt-14">{children}</main>
-      </div>
-    </BgmProvider>
+    <div className="min-h-screen ink-bg">
+      {/* 배경 빛 효과 */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201,169,110,0.05) 0%, transparent 70%)" }}
+      />
+      <GalleryHeader />
+      <main className="pt-14">{children}</main>
+    </div>
   );
 }
 
 // ── 아이콘 ───────────────────────────────────────────────────────────────────
+function VolumeIcon({ muted }: { muted: boolean }) {
+  return muted ? (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" />
+    </svg>
+  ) : (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
+  );
+}
+
 function MusicOnIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -495,8 +495,6 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <BgmProvider>
-      <HomeContent />
-    </BgmProvider>
+    <HomeContent />
   );
 }

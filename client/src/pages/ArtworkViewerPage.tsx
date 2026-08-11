@@ -277,8 +277,8 @@ export default function ArtworkViewerPage() {
               onClick={() => prevArtwork && goTo(prevArtwork.id, -1)}
               disabled={!prevArtwork}
               className="absolute left-2 sm:left-4 z-30 transition-all duration-200 hover:opacity-80 active:scale-95"
-              style={{ background: "rgba(12,10,20,0.7)", border: "1px solid rgba(201,169,110,0.2)", color: prevArtwork ? "#c9a96e" : "rgba(201,169,110,0.15)", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", cursor: prevArtwork ? "pointer" : "not-allowed", fontSize: "1rem" }}
-            >←</button>
+              style={{ background: "rgba(12,10,20,0.88)", border: "2px solid rgba(201,169,110,0.55)", color: prevArtwork ? "#c9a96e" : "rgba(201,169,110,0.12)", width: "52px", height: "52px", display: "flex", alignItems: "center", justifyContent: "center", cursor: prevArtwork ? "pointer" : "not-allowed", fontSize: "1.8rem", borderRadius: "50%", boxShadow: prevArtwork ? "0 0 20px rgba(201,169,110,0.25)" : "none", lineHeight: 1 }}
+            >‹</button>
 
             {/* 작품 미디어 */}
             <AnimatePresence mode="wait" custom={direction}>
@@ -315,8 +315,8 @@ export default function ArtworkViewerPage() {
               onClick={() => nextArtwork && goTo(nextArtwork.id, 1)}
               disabled={!nextArtwork}
               className="absolute right-2 sm:right-4 z-30 transition-all duration-200 hover:opacity-80 active:scale-95"
-              style={{ background: "rgba(12,10,20,0.7)", border: "1px solid rgba(201,169,110,0.2)", color: nextArtwork ? "#c9a96e" : "rgba(201,169,110,0.15)", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", cursor: nextArtwork ? "pointer" : "not-allowed", fontSize: "1rem" }}
-            >→</button>
+              style={{ background: "rgba(12,10,20,0.88)", border: "2px solid rgba(201,169,110,0.55)", color: nextArtwork ? "#c9a96e" : "rgba(201,169,110,0.12)", width: "52px", height: "52px", display: "flex", alignItems: "center", justifyContent: "center", cursor: nextArtwork ? "pointer" : "not-allowed", fontSize: "1.8rem", borderRadius: "50%", boxShadow: nextArtwork ? "0 0 20px rgba(201,169,110,0.25)" : "none", lineHeight: 1 }}
+            >›</button>
           </div>
 
           {/* 오른쪽: 작품 정보 패널 (항상 표시) */}
