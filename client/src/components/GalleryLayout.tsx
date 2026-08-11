@@ -38,6 +38,10 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolumeState] = useState(0.42);
+  // ref로 최신값 항상 참조 (클로저 문제 방지)
+  const volumeRef = useRef(0.42);
+  const isMutedRef = useRef(false);
+  const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const audio = new Audio(BGM_URL);
@@ -49,19 +53,27 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
     return () => { audio.pause(); audio.src = ""; };
   }, []);
 
+  const clearFade = useCallback(() => {
+    if (fadeTimerRef.current) {
+      clearInterval(fadeTimerRef.current);
+      fadeTimerRef.current = null;
+    }
+  }, []);
+
   const fadeVolume = useCallback((target: number, ms = 1500) => {
     const audio = audioRef.current;
     if (!audio) return;
+    clearFade();
     const start = audio.volume;
     const diff = target - start;
     const steps = 40;
     let step = 0;
-    const timer = setInterval(() => {
+    fadeTimerRef.current = setInterval(() => {
       step++;
       audio.volume = Math.min(1, Math.max(0, start + diff * (step / steps)));
-      if (step >= steps) clearInterval(timer);
+      if (step >= steps) clearFade();
     }, ms / steps);
-  }, []);
+  }, [clearFade]);
 
   const startBgm = useCallback(async () => {
     const audio = audioRef.current;
@@ -71,37 +83,53 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
       await audio.play();
       setIsPlaying(true);
       setIsMuted(false);
-      fadeVolume(0.42, 2000);
+      isMutedRef.current = false;
+      fadeVolume(volumeRef.current, 2000);
     } catch {}
   }, [isPlaying, fadeVolume]);
 
   const stopBgm = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    fadeVolume(0, 1000);
+    clearFade();
+    audio.volume = 0;
     setTimeout(() => {
       audio.pause();
       audio.currentTime = 0;
       setIsPlaying(false);
       setIsMuted(false);
+      isMutedRef.current = false;
     }, 1100);
-  }, [fadeVolume]);
+  }, [clearFade]);
 
   const toggleMute = useCallback(() => {
-    setIsMuted((prev) => {
-      const audio = audioRef.current;
-      if (audio) audio.volume = prev ? volume : 0;
-      return !prev;
-    });
-  }, [volume]);
+    const audio = audioRef.current;
+    if (!audio) return;
+    clearFade(); // 진행 중인 페이드 즉시 중단
+    const newMuted = !isMutedRef.current;
+    isMutedRef.current = newMuted;
+    audio.volume = newMuted ? 0 : volumeRef.current;
+    setIsMuted(newMuted);
+  }, [clearFade]);
 
   const setVolume = useCallback((v: number) => {
+    volumeRef.current = v;
     setVolumeState(v);
     const audio = audioRef.current;
     if (!audio) return;
-    audio.volume = v;
-    if (v > 0) setIsMuted(false);
-  }, []);
+    clearFade(); // 진행 중인 페이드 즉시 중단
+    if (!isMutedRef.current) {
+      audio.volume = v; // 뮤트 상태가 아닐 때만 즉시 반영
+    }
+    if (v === 0) {
+      isMutedRef.current = true;
+      setIsMuted(true);
+    } else if (isMutedRef.current && v > 0) {
+      // 슬라이더로 0에서 올리면 자동 언뮤트
+      isMutedRef.current = false;
+      setIsMuted(false);
+    }
+  }, [clearFade]);
 
   return (
     <BgmContext.Provider value={{ startBgm, stopBgm, isMuted, isPlaying, toggleMute, volume, setVolume }}>
