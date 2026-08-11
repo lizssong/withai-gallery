@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useCallback, createContext, useContext } f
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const BGM_URL = "/manus-storage/gallery-piano-bgm_accd858b.mp3";
 
@@ -128,6 +129,9 @@ export function GalleryHeader() {
   const { isMuted, isPlaying, toggleMute, volume, setVolume } = useBgm();
   const [showVolume, setShowVolume] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // 패널 외부 클릭 시 닫기
   useEffect(() => {
@@ -145,6 +149,25 @@ export function GalleryHeader() {
     };
   }, [showVolume]);
 
+  // 모바일 메뉴 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: Event) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("touchstart", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("touchstart", handleClick);
+    };
+  }, [menuOpen]);
+
+  // 페이지 이동 시 메뉴 닫기
+  useEffect(() => { setMenuOpen(false); }, [location]);
+
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3"
@@ -160,8 +183,8 @@ export function GalleryHeader() {
         />
       </Link>
 
-      {/* 중앙 네비게이션 */}
-      <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-5">
+      {/* 데스크톱 중앙 네비게이션 */}
+      <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-5">
         <NavLink href="/gallery" label="갤러리" active={location === "/gallery"} />
         <NavLink href="/exhibitions" label="전시회" active={location.startsWith("/exhibition")} />
         <NavLink href="/artists" label="작가" active={location.startsWith("/artists")} />
@@ -171,6 +194,90 @@ export function GalleryHeader() {
       {/* 우측: BGM + 마이페이지 + 시즌 */}
       <div className="flex items-center gap-3">
         <AuthButton location={location} />
+
+        {/* 모바일 햄버거 버튼 */}
+        {isMobile && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="메뉴 열기"
+              style={{
+                background: "none",
+                border: "1px solid rgba(201,169,110,0.3)",
+                borderRadius: "3px",
+                padding: "6px 9px",
+                color: "rgba(201,169,110,0.85)",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+                minWidth: "40px",
+                minHeight: "36px",
+                justifyContent: "center",
+                alignItems: "center",
+                touchAction: "manipulation",
+              }}
+            >
+              {menuOpen ? (
+                /* X 아이콘 */
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                /* 햄버거 아이콘 */
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              )}
+            </button>
+
+            {/* 드롭다운 메뉴 */}
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-11"
+                style={{
+                  background: "rgba(12,10,20,0.98)",
+                  border: "1px solid rgba(201,169,110,0.25)",
+                  borderRadius: "6px",
+                  zIndex: 400,
+                  minWidth: "160px",
+                  boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
+                  overflow: "hidden",
+                }}
+              >
+                {[
+                  { href: "/gallery", label: "갤러리" },
+                  { href: "/exhibitions", label: "전시회" },
+                  { href: "/artists", label: "작가" },
+                  { href: "/epilogue", label: "에필로그" },
+                ].map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="no-underline block"
+                    style={{
+                      padding: "14px 20px",
+                      fontSize: "0.95rem",
+                      fontFamily: "'Noto Serif KR', serif",
+                      color: location === href || (href !== "/" && location.startsWith(href))
+                        ? "#c9a96e"
+                        : "rgba(240,235,224,0.85)",
+                      background: location === href || (href !== "/" && location.startsWith(href))
+                        ? "rgba(201,169,110,0.08)"
+                        : "transparent",
+                      borderBottom: "1px solid rgba(201,169,110,0.08)",
+                      letterSpacing: "0.05em",
+                      display: "block",
+                    }}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* BGM 통합 컨트롤 — 뮤트 버튼 + 볼륨 슬라이더 팝업 */}
         {isPlaying && (
           <div className="relative" ref={panelRef}>
