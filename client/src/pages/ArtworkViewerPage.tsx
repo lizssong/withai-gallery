@@ -80,32 +80,41 @@ export default function ArtworkViewerPage() {
   }, [lightbox]);
 
   // 공유 함수
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-  const handleCopyLink = () => {
+  // 직접 링크 (복사용)
+  const directUrl = typeof window !== "undefined" ? window.location.href : "";
+  // OG 메타태그 포함 공유 URL (카카오톡/SNS 크롤러용)
+  const ogShareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/og/artwork/${artworkId}`
+    : "";
+
+  const copyToClipboard = (text: string) => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl)
-        .then(() => toast.success("링크가 복사되었습니다."))
-        .catch(() => {
-          // 클립보드 실패 시 폴백
-          const el = document.createElement("textarea");
-          el.value = shareUrl;
-          document.body.appendChild(el);
-          el.select();
-          document.execCommand("copy");
-          document.body.removeChild(el);
-          toast.success("링크가 복사되었습니다.");
-        });
+      navigator.clipboard.writeText(text).catch(() => {
+        const el = document.createElement("textarea");
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      });
     } else {
-      toast.error("이 환경에서는 링크 복사가 지원되지 않습니다.");
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
     }
   };
+
+  const handleCopyLink = () => {
+    copyToClipboard(directUrl);
+    toast.success("링크가 복사되었습니다.");
+  };
   const handleKakaoShare = () => {
-    // 카카오톡 공유 SDK가 없는 경우 웹 공유 URL로 대체
-    const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?app_key=&validation_action=default&validation_params=%7B%7D&ka=sdk%2F1.0.0+os%2Fjavascript+sdk_type%2Fjavascript+lang%2Fko-KR+device%2FDesktop+origin%2F${encodeURIComponent(window.location.origin)}`;
-    // 카카오 SDK 미설치 시 링크 복사로 대체
-    navigator.clipboard?.writeText(shareUrl).then(() => {
-      toast.success("링크가 복사되었습니다. 카카오톡에 붙여넣기 해주세요!");
-    }).catch(() => {});
+    // OG 이미지가 포함된 공유 URL 복사 → 카카오톡에 붙여넣기 시 썸네일 표시
+    copyToClipboard(ogShareUrl);
+    toast.success("공유 링크가 복사되었습니다! 카카오톡에 붙여넣기 해주세요 🎨");
   };
 
   const tags = artwork?.tags ? artwork.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
