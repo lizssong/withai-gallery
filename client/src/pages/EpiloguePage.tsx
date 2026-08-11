@@ -220,23 +220,34 @@ export default function EpiloguePage() {
               🔗 링크 복사
             </button>
             <a
-              href={`https://sharer.kakao.com/talk/friends/picker/link?app_key=KAKAO_APP_KEY&validation_action=default&validation_params=%7B%22url%22%3A%22${encodeURIComponent(window.location.origin)}%22%7D`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95 no-underline"
-              style={{ background: "rgba(254,229,0,0.1)", border: "1px solid rgba(254,229,0,0.25)", color: "rgba(254,229,0,0.8)", padding: "9px 18px", fontSize: "0.52rem", letterSpacing: "0.12em", cursor: "pointer", display: "inline-block" }}
+             href={`https://sharer.kakao.com/talk/friends/picker/link?app_key=KAKAO_APP_KEY&validation_action=default&validation_params=%7B%22url%22%3A%22${encodeURIComponent(window.location.origin)}%22%7D`}
+             target="_blank"
+             rel="noopener noreferrer"
+             className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95 no-underline"
+             style={{ background: "rgba(254,229,0,0.1)", border: "1px solid rgba(254,229,0,0.25)", color: "rgba(254,229,0,0.8)", padding: "9px 18px", fontSize: "0.52rem", letterSpacing: "0.12em", cursor: "pointer", display: "inline-block" }}
+           >
+             💬 카카오 공유
+           </a>
+            <button
+              onClick={() => {
+                const url = window.location.origin;
+                navigator.clipboard?.writeText(url).then(() => {}).catch(() => {
+                  const el = document.createElement("textarea");
+                  el.value = url;
+                  document.body.appendChild(el);
+                  el.select();
+                  document.execCommand("copy");
+                  document.body.removeChild(el);
+                });
+                const btn = document.getElementById("kakao-btn");
+                if (btn) { btn.textContent = "✓ 복사됨! 카카오톡에 붙여넣기"; setTimeout(() => { btn.textContent = "💬 카카오 공유 (링크 복사)"; }, 3000); }
+              }}
+              id="kakao-btn"
+              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95"
+              style={{ background: "rgba(254,229,0,0.1)", border: "1px solid rgba(254,229,0,0.25)", color: "rgba(254,229,0,0.8)", padding: "9px 18px", fontSize: "0.52rem", letterSpacing: "0.12em", cursor: "pointer" }}
             >
-              💬 카카오 공유
-            </a>
-            <a
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("위드AI솔루션 AI올인원과정 1기 AI아트 전시회 🎨 AI와 함께 그려낸 작가들의 상상과 감성의 세계")}&url=${encodeURIComponent(window.location.origin)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="gallery-caption transition-all duration-200 hover:opacity-80 active:scale-95 no-underline"
-              style={{ background: "rgba(29,161,242,0.1)", border: "1px solid rgba(29,161,242,0.25)", color: "rgba(29,161,242,0.8)", padding: "9px 18px", fontSize: "0.52rem", letterSpacing: "0.12em", cursor: "pointer", display: "inline-block" }}
-            >
-              𝕏 공유
-            </a>
+              💬 카카오 공유 (링크 복사)
+            </button>
           </div>
         </motion.div>
 

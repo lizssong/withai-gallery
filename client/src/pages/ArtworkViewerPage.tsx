@@ -499,7 +499,7 @@ export default function ArtworkViewerPage() {
                       className="gallery-caption flex items-center gap-1.5 transition-all duration-200 hover:opacity-80 active:scale-95"
                       style={{ background: "rgba(254,229,0,0.08)", border: "1px solid rgba(254,229,0,0.25)", color: "rgba(254,229,0,0.8)", padding: "5px 12px", fontSize: "0.72rem", letterSpacing: "0.1em", cursor: "pointer" }}
                     >
-                      카카오톡 공유
+                      💬 카카오 공유 (링크 복사)
                     </button>
                   </div>
 
