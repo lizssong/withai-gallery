@@ -143,6 +143,23 @@ export function GalleryHeader() {
   const [location] = useLocation();
   const { isMuted, isPlaying, toggleMute, volume, setVolume } = useBgm();
   const [showVolume, setShowVolume] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // 패널 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!showVolume) return;
+    const handleClick = (e: Event) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setShowVolume(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("touchstart", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("touchstart", handleClick);
+    };
+  }, [showVolume]);
 
   return (
     <header
@@ -170,53 +187,102 @@ export function GalleryHeader() {
       {/* 우측: BGM + 마이페이지 + 시즌 */}
       <div className="flex items-center gap-3">
         <AuthButton location={location} />
+        {/* BGM 통합 컨트롤 — 뮤트 버튼 + 볼륨 슬라이더 팝업 */}
         {isPlaying && (
-          <button
-            onClick={toggleMute}
-            className="flex items-center gap-1.5 transition-all duration-200 hover:opacity-80 active:scale-95"
-            style={{
-              background: "none",
-              border: `1px solid ${isMuted ? "rgba(201,169,110,0.2)" : "rgba(201,169,110,0.4)"}`,
-              borderRadius: "2px",
-              padding: "3px 8px",
-              color: isMuted ? "rgba(201,169,110,0.35)" : "rgba(201,169,110,0.85)",
-            }}
-            aria-label={isMuted ? "음악 켜기" : "음악 끄기"}
-          >
-            {isMuted ? <MusicOffIcon /> : <MusicOnIcon />}
-            <span className="gallery-caption hidden sm:inline" style={{ fontSize: "0.5rem", letterSpacing: "0.15em", color: "inherit" }}>
-              {isMuted ? "MUTED" : "♪ BGM"}
-            </span>
-          </button>
-        )}
-        {isPlaying && (
-          <div className="relative">
-            <button
-              onClick={() => setShowVolume((v) => !v)}
-              className="flex items-center transition-all duration-200 hover:opacity-80 active:scale-95"
-              style={{ background: "none", border: "none", color: "rgba(201,169,110,0.65)", cursor: "pointer", padding: "4px 5px" }}
-              aria-label="음량 조절"
-            >
-              <VolumeIcon muted={isMuted} />
-            </button>
+          <div className="relative" ref={panelRef}>
+            {/* 뮤트/언뮤트 + 볼륨 팝업 토글 통합 버튼 */}
+            <div className="flex items-center gap-1">
+              {/* 뮤트 토글 버튼 */}
+              <button
+                onClick={toggleMute}
+                aria-label={isMuted ? "음악 켜기" : "음악 끄기"}
+                style={{
+                  background: "none",
+                  border: `1px solid ${isMuted ? "rgba(201,169,110,0.2)" : "rgba(201,169,110,0.4)"}`,
+                  borderRadius: "3px",
+                  padding: "6px 8px",
+                  color: isMuted ? "rgba(201,169,110,0.35)" : "rgba(201,169,110,0.85)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  minWidth: "44px",
+                  minHeight: "36px",
+                  touchAction: "manipulation",
+                }}
+              >
+                {isMuted ? <MusicOffIcon /> : <MusicOnIcon />}
+                <span className="hidden sm:inline" style={{ fontSize: "0.48rem", letterSpacing: "0.12em", color: "inherit" }}>
+                  {isMuted ? "OFF" : "ON"}
+                </span>
+              </button>
+              {/* 볼륨 슬라이더 토글 버튼 */}
+              <button
+                onClick={() => setShowVolume((v) => !v)}
+                aria-label="음량 조절"
+                style={{
+                  background: showVolume ? "rgba(201,169,110,0.12)" : "none",
+                  border: "1px solid rgba(201,169,110,0.25)",
+                  borderRadius: "3px",
+                  padding: "6px 7px",
+                  color: "rgba(201,169,110,0.7)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  minWidth: "36px",
+                  minHeight: "36px",
+                  touchAction: "manipulation",
+                }}
+              >
+                <VolumeIcon muted={isMuted} />
+              </button>
+            </div>
+
+            {/* 볼륨 슬라이더 팝업 — 가로 방향, 모바일 친화적 */}
             {showVolume && (
               <div
-                className="absolute right-0 top-9 flex flex-col items-center gap-2 p-3"
-                style={{ background: "rgba(12,10,20,0.96)", border: "1px solid rgba(201,169,110,0.3)", borderRadius: "4px", zIndex: 200, minWidth: "52px" }}
+                className="absolute right-0 top-11"
+                style={{
+                  background: "rgba(12,10,20,0.97)",
+                  border: "1px solid rgba(201,169,110,0.3)",
+                  borderRadius: "6px",
+                  zIndex: 300,
+                  padding: "12px 16px",
+                  minWidth: "180px",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                }}
               >
-                <span className="gallery-caption" style={{ fontSize: "0.44rem", color: "rgba(201,169,110,0.6)", letterSpacing: "0.08em" }}>
-                  {Math.round(volume * 100)}%
-                </span>
+                <div className="flex items-center justify-between mb-2">
+                  <span style={{ fontSize: "0.52rem", color: "rgba(201,169,110,0.6)", letterSpacing: "0.1em", fontFamily: "sans-serif" }}>
+                    음량
+                  </span>
+                  <span style={{ fontSize: "0.55rem", color: "#c9a96e", fontFamily: "sans-serif", fontWeight: 600 }}>
+                    {isMuted ? "OFF" : `${Math.round(volume * 100)}%`}
+                  </span>
+                </div>
+                {/* 가로 슬라이더 — 터치 친화적 */}
                 <input
                   type="range"
                   min={0}
                   max={1}
                   step={0.02}
-                  value={volume}
-                  onChange={(e) => setVolume(Number(e.target.value))}
-                  className="volume-slider"
-                  style={{ writingMode: "vertical-lr" as const, direction: "rtl" as const, width: "4px", height: "72px", cursor: "pointer", accentColor: "#c9a96e" }}
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setVolume(v);
+                  }}
+                  style={{
+                    width: "100%",
+                    height: "20px",
+                    accentColor: "#c9a96e",
+                    cursor: "pointer",
+                    touchAction: "none",
+                  }}
                 />
+                <div className="flex justify-between mt-1">
+                  <span style={{ fontSize: "0.4rem", color: "rgba(201,169,110,0.3)", fontFamily: "sans-serif" }}>0</span>
+                  <span style={{ fontSize: "0.4rem", color: "rgba(201,169,110,0.3)", fontFamily: "sans-serif" }}>100</span>
+                </div>
               </div>
             )}
           </div>
