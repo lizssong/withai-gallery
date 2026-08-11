@@ -38,10 +38,8 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolumeState] = useState(0.42);
-  // ref로 최신값 항상 참조 (클로저 문제 방지)
-  const volumeRef = useRef(0.42);
-  const isMutedRef = useRef(false);
-  const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 최신 상태를 ref로 유지 (이벤트 핸들러 클로저에서 항상 최신값 참조)
+  const stateRef = useRef({ volume: 0.42, isMuted: false, isPlaying: false });
 
   useEffect(() => {
     const audio = new Audio(BGM_URL);
@@ -53,83 +51,69 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
     return () => { audio.pause(); audio.src = ""; };
   }, []);
 
-  const clearFade = useCallback(() => {
-    if (fadeTimerRef.current) {
-      clearInterval(fadeTimerRef.current);
-      fadeTimerRef.current = null;
-    }
-  }, []);
-
-  const fadeVolume = useCallback((target: number, ms = 1500) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    clearFade();
-    const start = audio.volume;
-    const diff = target - start;
-    const steps = 40;
-    let step = 0;
-    fadeTimerRef.current = setInterval(() => {
-      step++;
-      audio.volume = Math.min(1, Math.max(0, start + diff * (step / steps)));
-      if (step >= steps) clearFade();
-    }, ms / steps);
-  }, [clearFade]);
-
+  // startBgm: 처음 재생 시작 (페이드인)
   const startBgm = useCallback(async () => {
     const audio = audioRef.current;
-    if (!audio || isPlaying) return;
+    if (!audio || stateRef.current.isPlaying) return;
     try {
       audio.volume = 0;
       await audio.play();
+      stateRef.current.isPlaying = true;
+      stateRef.current.isMuted = false;
       setIsPlaying(true);
       setIsMuted(false);
-      isMutedRef.current = false;
-      fadeVolume(volumeRef.current, 2000);
+      // 2초에 걸쳐 목표 볼륨까지 페이드인
+      const target = stateRef.current.volume;
+      let v = 0;
+      const step = target / 40;
+      const timer = setInterval(() => {
+        v = Math.min(v + step, target);
+        if (audioRef.current) audioRef.current.volume = v;
+        if (v >= target) clearInterval(timer);
+      }, 50);
     } catch {}
-  }, [isPlaying, fadeVolume]);
+  }, []);
 
   const stopBgm = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    clearFade();
     audio.volume = 0;
-    setTimeout(() => {
-      audio.pause();
-      audio.currentTime = 0;
-      setIsPlaying(false);
-      setIsMuted(false);
-      isMutedRef.current = false;
-    }, 1100);
-  }, [clearFade]);
+    audio.pause();
+    audio.currentTime = 0;
+    stateRef.current.isPlaying = false;
+    setIsPlaying(false);
+    setIsMuted(false);
+  }, []);
 
+  // toggleMute: 뮤트/언뮤트 — 즉각 반영
   const toggleMute = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    clearFade(); // 진행 중인 페이드 즉시 중단
-    const newMuted = !isMutedRef.current;
-    isMutedRef.current = newMuted;
-    audio.volume = newMuted ? 0 : volumeRef.current;
+    const newMuted = !stateRef.current.isMuted;
+    stateRef.current.isMuted = newMuted;
+    // 즉각 볼륨 변경
+    audio.volume = newMuted ? 0 : stateRef.current.volume;
     setIsMuted(newMuted);
-  }, [clearFade]);
+  }, []);
 
+  // setVolume: 슬라이더 — 즉각 반영
   const setVolume = useCallback((v: number) => {
-    volumeRef.current = v;
-    setVolumeState(v);
+    const clamped = Math.max(0, Math.min(1, v));
+    stateRef.current.volume = clamped;
+    setVolumeState(clamped);
     const audio = audioRef.current;
     if (!audio) return;
-    clearFade(); // 진행 중인 페이드 즉시 중단
-    if (!isMutedRef.current) {
-      audio.volume = v; // 뮤트 상태가 아닐 때만 즉시 반영
-    }
-    if (v === 0) {
-      isMutedRef.current = true;
+    // 뮤트 여부와 관계없이 항상 audio.volume 직접 설정
+    audio.volume = clamped;
+    // 슬라이더 0 → 뮤트 표시, 0 이상 → 언뮤트 표시
+    if (clamped === 0) {
+      stateRef.current.isMuted = true;
       setIsMuted(true);
-    } else if (isMutedRef.current && v > 0) {
-      // 슬라이더로 0에서 올리면 자동 언뮤트
-      isMutedRef.current = false;
+    } else {
+      stateRef.current.isMuted = false;
       setIsMuted(false);
     }
-  }, [clearFade]);
+  }, []);
 
   return (
     <BgmContext.Provider value={{ startBgm, stopBgm, isMuted, isPlaying, toggleMute, volume, setVolume }}>
