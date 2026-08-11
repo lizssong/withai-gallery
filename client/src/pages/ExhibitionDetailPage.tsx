@@ -3,17 +3,17 @@
  * 특정 전시회의 초대장 → 작가 목록 → 작품 뷰어 흐름을 독립적으로 제공합니다.
  * 커버 이미지가 있으면 초대장 배경 및 작가 목록 헤더에 표시됩니다.
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useParams } from "wouter";
-import { GalleryLayout } from "@/components/GalleryLayout";
+import { GalleryLayout, useBgm } from "@/components/GalleryLayout";
 import { trpc } from "@/lib/trpc";
 
 export default function ExhibitionDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const [, setLocation] = useLocation();
   const [entered, setEntered] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { startBgm } = useBgm();
 
   const { data: exhibition, isLoading, error } = trpc.exhibition.getBySlug.useQuery(
     { slug: slug ?? "" },
@@ -24,19 +24,10 @@ export default function ExhibitionDetailPage() {
     { enabled: !!exhibition?.id && entered }
   );
 
-  // BGM 재생
+  // BGM — BgmProvider 통합 (헤더 음량 조절 연동)
   useEffect(() => {
-    if (entered && audioRef.current) {
-      audioRef.current.volume = 0;
-      audioRef.current.play().catch(() => {});
-      let v = 0;
-      const fade = setInterval(() => {
-        v = Math.min(v + 0.02, 0.35);
-        if (audioRef.current) audioRef.current.volume = v;
-        if (v >= 0.35) clearInterval(fade);
-      }, 80);
-    }
-  }, [entered]);
+    if (entered) startBgm();
+  }, [entered, startBgm]);
 
   if (isLoading) {
     return (
@@ -72,9 +63,6 @@ export default function ExhibitionDetailPage() {
 
   return (
     <GalleryLayout>
-      {/* BGM */}
-      <audio ref={audioRef} preload="none" src="/manus-storage/gallery-bgm_99faee5a.mp3" />
-
       <AnimatePresence mode="wait">
         {!entered ? (
           /* ── 초대장 ── */
