@@ -7,7 +7,7 @@ import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 
-const BGM_URL = "/manus-storage/gallery-bgm_99faee5a.mp3";
+const BGM_URL = "/manus-storage/gallery-piano-bgm_accd858b.mp3";
 
 // ── BGM Context ─────────────────────────────────────────────────────────────
 interface BgmContextType {
@@ -36,7 +36,7 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const audio = new Audio(BGM_URL);
-    audio.loop = false;
+    audio.loop = true;
     audio.volume = 0;
     audio.preload = "auto";
     audioRef.current = audio;
