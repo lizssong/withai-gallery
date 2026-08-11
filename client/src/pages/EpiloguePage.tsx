@@ -103,7 +103,7 @@ export default function EpiloguePage() {
                 위드AI솔루션 · AI ART CURATOR &amp; INSTRUCTOR
               </p>
               <div className="flex flex-wrap gap-2 mb-3">
-                {["위드AI솔루션 대표", "캔바 지국장", "AI융합마케팅콘텐츠 강사", "아바톡 크리퐁 엠버서더", "수퍼톤 엠버서더", "AI아트 작가"].map((tag) => (
+                {["위드AI솔루션 대표", "캔바 지국장", "AI융합마케팅콘텐츠 강사", "AI아트 작가"].map((tag) => (
                   <span
                     key={tag}
                     style={{
@@ -174,28 +174,33 @@ export default function EpiloguePage() {
         {/* ── 링크 섹션 ── */}
         <motion.div className="mb-12" {...fadeUp(0.44)}>
           <p className="gallery-caption mb-4" style={{ fontSize: "0.52rem", color: "#c9a96e", letterSpacing: "0.28em" }}>LINKS</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              { label: "위드AI솔루션 강의 문의", desc: "기업 · 학교 · 기관 · 취창업센터 강의", href: "#" },
-              { label: "AI올인원과정 수강 신청", desc: "생성형AI · 캔바 · AI아트 통합 과정", href: "#" },
-              { label: "아바톡 크리퐁", desc: "엠버서더 활동 · AI 캐릭터 이모티콘", href: "#" },
-              { label: "수퍼톤 엠버서더", desc: "AI 음성 · 음악 생성 솔루션", href: "#" },
-            ].map(({ label, desc, href }) => (
-              <a
-                key={label}
-                href={href}
-                onClick={(e) => e.preventDefault()}
-                className="flex items-center justify-between transition-all duration-200 hover:opacity-80 no-underline"
-                style={{ background: "rgba(30,28,48,0.55)", border: "1px solid rgba(201,169,110,0.12)", padding: "0.9rem 1.1rem" }}
-              >
-                <div>
-                  <p style={{ fontSize: "0.82rem", color: "#f0ebe0", fontFamily: "'Noto Serif KR', serif", marginBottom: "3px" }}>{label}</p>
-                  <p className="gallery-caption" style={{ fontSize: "0.44rem", color: "rgba(201,169,110,0.5)", letterSpacing: "0.1em" }}>{desc}</p>
-                </div>
-                <span style={{ color: "#c9a96e", fontSize: "0.85rem" }}>→</span>
-              </a>
-            ))}
-          </div>
+          {/* 강의 문의 및 협업 — 리틀리 프로필 카드 */}
+          <a
+            href="https://litt.ly/ssongliz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-5 transition-all duration-200 hover:opacity-85 no-underline"
+            style={{ background: "rgba(30,28,48,0.65)", border: "1px solid rgba(201,169,110,0.25)", padding: "1.2rem 1.4rem", borderRadius: "4px", maxWidth: "480px" }}
+          >
+            {/* QR 코드 */}
+            <img
+              src="/manus-storage/qr-littly_cd897a9f.png"
+              alt="리틀리 QR코드"
+              style={{ width: "72px", height: "72px", objectFit: "contain", flexShrink: 0, background: "#fff", padding: "4px", borderRadius: "3px" }}
+            />
+            {/* 텍스트 */}
+            <div>
+              <p style={{ fontSize: "1rem", color: "#f0ebe0", fontFamily: "'Noto Serif KR', serif", fontWeight: 600, marginBottom: "5px" }}>
+                강의 문의 및 협업
+              </p>
+              <p className="gallery-caption" style={{ fontSize: "0.52rem", color: "rgba(201,169,110,0.65)", letterSpacing: "0.08em", marginBottom: "4px" }}>
+                기업 · 학교 · 기관 · 취창업센터 강의 문의
+              </p>
+              <p className="gallery-caption" style={{ fontSize: "0.48rem", color: "rgba(201,169,110,0.4)", letterSpacing: "0.12em" }}>
+                litt.ly/ssongliz →
+              </p>
+            </div>
+          </a>
         </motion.div>
 
         {/* ── 공유 버튼 ── */}
