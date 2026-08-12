@@ -107,3 +107,4 @@
 
 ## 작품 탐색 버튼 가시성 개선 (2026-08-13)
 - [x] ArtworkViewerPage 및 GalleryBrowsePage — 모든 작품 배경에서 선명하게 보이는 이전·다음 화살표 UI 적용
+- [x] ArtworkViewerPage 및 GalleryBrowsePage — 탐색 버튼을 작품 바깥 여백으로 이동하고 최소 침범형 스타일로 재조정

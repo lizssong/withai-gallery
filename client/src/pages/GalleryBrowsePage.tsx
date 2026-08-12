@@ -86,40 +86,36 @@ function Lightbox({
       {/* 이전 버튼 */}
       <button
         onClick={(e) => { e.stopPropagation(); onPrev(); }}
-        className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center rounded-full transition-all hover:scale-105 active:scale-95"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full transition-all opacity-70 hover:opacity-100 hover:scale-105 focus-visible:opacity-100 active:scale-95"
         style={{
           ...getNavigationButtonStyle(),
-          gap: "1px",
         }}
         aria-label="이전 작품"
         title="이전 작품"
       >
-        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6" />
         </svg>
-        <span style={{ fontSize: "0.48rem", lineHeight: 1, fontWeight: 700, letterSpacing: "0.08em" }}>이전</span>
       </button>
 
       {/* 다음 버튼 */}
       <button
         onClick={(e) => { e.stopPropagation(); onNext(); }}
-        className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center rounded-full transition-all hover:scale-105 active:scale-95"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full transition-all opacity-70 hover:opacity-100 hover:scale-105 focus-visible:opacity-100 active:scale-95"
         style={{
           ...getNavigationButtonStyle(),
-          gap: "1px",
         }}
         aria-label="다음 작품"
         title="다음 작품"
       >
-        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <polyline points="9 18 15 12 9 6" />
         </svg>
-        <span style={{ fontSize: "0.48rem", lineHeight: 1, fontWeight: 700, letterSpacing: "0.08em" }}>다음</span>
       </button>
 
       {/* 메인 콘텐츠 */}
       <div
-        className="relative flex flex-col lg:flex-row gap-0 max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden"
+        className="relative flex flex-col lg:flex-row gap-0 max-w-6xl w-full mx-14 max-h-[90vh] overflow-hidden"
         style={{ borderRadius: "4px", border: "1px solid rgba(201,169,110,0.15)" }}
         onClick={(e) => e.stopPropagation()}
       >

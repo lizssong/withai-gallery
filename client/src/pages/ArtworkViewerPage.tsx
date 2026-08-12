@@ -288,21 +288,18 @@ export default function ArtworkViewerPage() {
               disabled={!prevArtwork}
               aria-label="이전 작품 보기"
               title="이전 작품"
-              className="absolute left-2 sm:left-5 z-40 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="absolute left-2 sm:left-5 z-40 transition-all duration-200 opacity-70 hover:opacity-100 hover:scale-105 focus-visible:opacity-100 active:scale-95"
               style={{
                 ...getNavigationButtonStyle(Boolean(prevArtwork)),
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "1px",
                 cursor: prevArtwork ? "pointer" : "not-allowed",
               }}
             >
-              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="m15 18-6-6 6-6" />
               </svg>
-              <span style={{ fontSize: "0.48rem", lineHeight: 1, fontWeight: 700, letterSpacing: "0.08em" }}>이전</span>
             </button>
 
             {/* 작품 미디어 */}
@@ -316,7 +313,7 @@ export default function ArtworkViewerPage() {
                 exit="exit"
                 transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
                 className="relative"
-                style={{ maxWidth: "min(700px, calc(100% - 100px))", width: "100%" }}
+                style={{ maxWidth: "min(700px, calc(100% - 130px))", width: "100%" }}
               >
                 {artwork.mediaType === "video" ? (
                   <video
@@ -341,21 +338,18 @@ export default function ArtworkViewerPage() {
               disabled={!nextArtwork}
               aria-label="다음 작품 보기"
               title="다음 작품"
-              className="absolute right-2 sm:right-5 z-40 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="absolute right-2 sm:right-5 z-40 transition-all duration-200 opacity-70 hover:opacity-100 hover:scale-105 focus-visible:opacity-100 active:scale-95"
               style={{
                 ...getNavigationButtonStyle(Boolean(nextArtwork)),
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "1px",
                 cursor: nextArtwork ? "pointer" : "not-allowed",
               }}
             >
-              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="m9 18 6-6-6-6" />
               </svg>
-              <span style={{ fontSize: "0.48rem", lineHeight: 1, fontWeight: 700, letterSpacing: "0.08em" }}>다음</span>
             </button>
           </div>
 
