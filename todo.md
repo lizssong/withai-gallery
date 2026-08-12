@@ -104,3 +104,6 @@
 - [x] ArtworkViewerPage.tsx — 이미지 클릭 시 전체화면 라이트박스 모달 (ESC/클릭 닫기, zoom-in 커서)
 - [x] ArtworkViewerPage.tsx — 정보 패널 하단 "이 작가의 다른 작품" 64px 썸네일 섹션 (OTHER WORKS)
 - [x] ArtworkViewerPage.tsx — 상단 바 + 정보 패널 하단에 링크 복사 + 카카오톡 공유 버튼 (SHARE 섹션)
+
+## 작품 탐색 버튼 가시성 개선 (2026-08-13)
+- [x] ArtworkViewerPage 및 GalleryBrowsePage — 모든 작품 배경에서 선명하게 보이는 이전·다음 화살표 UI 적용

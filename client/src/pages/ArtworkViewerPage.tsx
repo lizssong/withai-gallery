@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GalleryLayout } from "@/components/GalleryLayout";
 import { trpc } from "@/lib/trpc";
 import ZoomableImage from "@/components/ZoomableImage";
+import { getNavigationButtonStyle } from "@/lib/navigationControls";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -285,9 +286,24 @@ export default function ArtworkViewerPage() {
             <button
               onClick={() => prevArtwork && goTo(prevArtwork.id, -1)}
               disabled={!prevArtwork}
-              className="absolute left-2 sm:left-4 z-30 transition-all duration-200 hover:opacity-80 active:scale-95"
-              style={{ background: "rgba(12,10,20,0.88)", border: "2px solid rgba(201,169,110,0.55)", color: prevArtwork ? "#c9a96e" : "rgba(201,169,110,0.12)", width: "52px", height: "52px", display: "flex", alignItems: "center", justifyContent: "center", cursor: prevArtwork ? "pointer" : "not-allowed", fontSize: "1.8rem", borderRadius: "50%", boxShadow: prevArtwork ? "0 0 20px rgba(201,169,110,0.25)" : "none", lineHeight: 1 }}
-            >‹</button>
+              aria-label="이전 작품 보기"
+              title="이전 작품"
+              className="absolute left-2 sm:left-5 z-40 transition-all duration-200 hover:scale-105 active:scale-95"
+              style={{
+                ...getNavigationButtonStyle(Boolean(prevArtwork)),
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "1px",
+                cursor: prevArtwork ? "pointer" : "not-allowed",
+              }}
+            >
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              <span style={{ fontSize: "0.48rem", lineHeight: 1, fontWeight: 700, letterSpacing: "0.08em" }}>이전</span>
+            </button>
 
             {/* 작품 미디어 */}
             <AnimatePresence mode="wait" custom={direction}>
@@ -323,9 +339,24 @@ export default function ArtworkViewerPage() {
             <button
               onClick={() => nextArtwork && goTo(nextArtwork.id, 1)}
               disabled={!nextArtwork}
-              className="absolute right-2 sm:right-4 z-30 transition-all duration-200 hover:opacity-80 active:scale-95"
-              style={{ background: "rgba(12,10,20,0.88)", border: "2px solid rgba(201,169,110,0.55)", color: nextArtwork ? "#c9a96e" : "rgba(201,169,110,0.12)", width: "52px", height: "52px", display: "flex", alignItems: "center", justifyContent: "center", cursor: nextArtwork ? "pointer" : "not-allowed", fontSize: "1.8rem", borderRadius: "50%", boxShadow: nextArtwork ? "0 0 20px rgba(201,169,110,0.25)" : "none", lineHeight: 1 }}
-            >›</button>
+              aria-label="다음 작품 보기"
+              title="다음 작품"
+              className="absolute right-2 sm:right-5 z-40 transition-all duration-200 hover:scale-105 active:scale-95"
+              style={{
+                ...getNavigationButtonStyle(Boolean(nextArtwork)),
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "1px",
+                cursor: nextArtwork ? "pointer" : "not-allowed",
+              }}
+            >
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+              <span style={{ fontSize: "0.48rem", lineHeight: 1, fontWeight: 700, letterSpacing: "0.08em" }}>다음</span>
+            </button>
           </div>
 
           {/* 오른쪽: 작품 정보 패널 (항상 표시) */}
