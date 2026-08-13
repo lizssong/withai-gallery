@@ -44,6 +44,34 @@ async function startServer() {
   const DEFAULT_OG_IMAGE = `${SITE_URL}/manus-storage/artworks/1784352997546-pl9th2odreb_0de0d559.png`;
   const SITE_TITLE = "위드AI아트작가갤러리 온라인전시회 | By 송민경 캔바지국장";
   const SITE_DESC = "위드AI솔루션 AI올인원과정 1기 작가들이 AI와 함께 그려낸 상상과 감성의 세계. By 송민경 캔바지국장";
+  const GOOGLE_VERIFICATION_FILE = "googlecd30b39fbc4e7b73.html";
+  const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${SITE_URL}/</loc><lastmod>2026-08-13</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>${SITE_URL}/gallery</loc><lastmod>2026-08-13</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>${SITE_URL}/artists</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>${SITE_URL}/artists/1</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${SITE_URL}/artists/30001</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${SITE_URL}/artists/60001</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${SITE_URL}/artists/90001</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${SITE_URL}/artists/120001</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${SITE_URL}/artists/150001</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${SITE_URL}/artists/180001</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>${SITE_URL}/exhibitions</loc><lastmod>2026-08-13</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>${SITE_URL}/exhibition/ai-art-2025</loc><lastmod>2026-08-13</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>${SITE_URL}/epilogue</loc><lastmod>2026-08-13</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+</urlset>`;
+
+  // 검색 엔진·Search Console은 배포 환경에서 정적 파일 대신 이 명시적 응답을 우선 사용한다.
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").send(`User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+  });
+  app.get("/sitemap.xml", (_req, res) => {
+    res.type("application/xml").send(sitemapXml);
+  });
+  app.get(`/${GOOGLE_VERIFICATION_FILE}`, (_req, res) => {
+    res.type("text/html").send(`google-site-verification: ${GOOGLE_VERIFICATION_FILE}`);
+  });
 
   function buildOgHtml(opts: { title: string; description: string; image: string; url: string }) {
     return `<!DOCTYPE html>
