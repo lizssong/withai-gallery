@@ -37,9 +37,6 @@ export const useBgm = () => useContext(BgmContext);
 // ── BgmProvider ──────────────────────────────────────────────────────────────
 export function BgmProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -57,52 +54,21 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const effectiveGain = getEffectiveBgmGain(nextVolume, nextMuted);
-    // iOS Safari에서는 HTMLMediaElement.volume 제어가 제한될 수 있어 출력은 GainNode가 담당한다.
-    audio.muted = false;
-    audio.volume = 1;
-
-    const context = audioContextRef.current;
-    const gainNode = gainNodeRef.current;
-    if (context && gainNode) {
-      gainNode.gain.cancelScheduledValues(context.currentTime);
-      gainNode.gain.setValueAtTime(effectiveGain, context.currentTime);
-    } else {
-      audio.volume = effectiveGain;
-    }
+    audio.muted = nextMuted;
+    audio.volume = getEffectiveBgmGain(nextVolume, nextMuted);
   }, []);
 
   useEffect(() => {
     const audio = new Audio(BGM_URL);
     audio.loop = true;
-    audio.volume = 1;
+    audio.volume = 0;
     audio.preload = "auto";
     audioRef.current = audio;
     audio.load();
 
-    try {
-      const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (AudioContextCtor) {
-        const context = new AudioContextCtor();
-        const source = context.createMediaElementSource(audio);
-        const gain = context.createGain();
-        gain.gain.value = 0;
-        source.connect(gain);
-        gain.connect(context.destination);
-        audioContextRef.current = context;
-        sourceNodeRef.current = source;
-        gainNodeRef.current = gain;
-      }
-    } catch {
-      // Web Audio를 지원하지 않는 환경은 audio.volume 폴백을 사용한다.
-    }
-
     return () => {
       clearFade();
       audio.pause();
-      sourceNodeRef.current?.disconnect();
-      gainNodeRef.current?.disconnect();
-      void audioContextRef.current?.close();
       audio.src = "";
     };
   }, [clearFade]);
@@ -112,7 +78,6 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
     if (!audio || stateRef.current.isPlaying) return;
     try {
       clearFade();
-      if (audioContextRef.current?.state === "suspended") await audioContextRef.current.resume();
       applyOutputGain(0, false);
       await audio.play();
       stateRef.current.isPlaying = true;
@@ -152,7 +117,6 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
       setVolumeState(stateRef.current.lastAudibleVolume);
     }
     stateRef.current.isMuted = newMuted;
-    void audioContextRef.current?.resume();
     applyOutputGain(stateRef.current.volume, newMuted);
     setIsMuted(newMuted);
   }, [applyOutputGain, clearFade]);
@@ -167,7 +131,6 @@ export function BgmProvider({ children }: { children: React.ReactNode }) {
     if (!audio) return;
     const nextMuted = clamped === 0;
     stateRef.current.isMuted = nextMuted;
-    void audioContextRef.current?.resume();
     applyOutputGain(clamped, nextMuted);
     setIsMuted(nextMuted);
   }, [applyOutputGain, clearFade]);
