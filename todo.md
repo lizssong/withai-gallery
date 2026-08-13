@@ -129,4 +129,14 @@
 ## 이벤터스·Google 검색 노출 적용 (2026-08-13)
 - [x] 이벤터스 행사 등록용 제목·소개·이미지 문구 패키지 작성
 - [x] 사이트맵·robots·구조화 데이터를 사이트에 적용
-- [ ] Google Search Console 소유권 등록 및 색인 요청 준비·실행
+- [x] Google Search Console 소유권 등록 및 sitemap.xml 제출
+- [x] Google Search Console — 홈 URL을 성공적으로 제출된 sitemap.xml(13개 URL)에 포함
+- [ ] Google Search Console — 홈 URL 실제 URL 테스트 완료 후 ‘색인 생성 요청이 제출됨’ 성공 메시지 확인 및 기록
+
+## Google 색인 요청 재시도 예약 (2026-08-14)
+- [x] Google Search Console 일일 할당량 초기화 후 홈 URL 색인 생성 요청 재시도 일정 생성 (2026-08-15 10:00 KST)
+- [ ] 예약 실행 후 홈 URL 색인 생성 요청 성공 여부 기록
+
+## GitHub 코드 백업 (2026-08-13)
+- [x] 비공개 GitHub 저장소 withai-gallery 생성
+- [x] 저장소 설명 설정 및 현재 갤러리 코드 백업
