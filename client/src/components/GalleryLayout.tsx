@@ -7,6 +7,7 @@ import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
+import { clampBgmVolume, getEffectiveBgmGain } from "@/lib/bgmControls";
 
 const BGM_URL = "/manus-storage/gallery-piano-bgm_accd858b.mp3";
 
@@ -36,85 +37,140 @@ export const useBgm = () => useContext(BgmContext);
 // ── BgmProvider ──────────────────────────────────────────────────────────────
 export function BgmProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolumeState] = useState(0.42);
-  // 최신 상태를 ref로 유지 (이벤트 핸들러 클로저에서 항상 최신값 참조)
-  const stateRef = useRef({ volume: 0.42, isMuted: false, isPlaying: false });
+  const stateRef = useRef({ volume: 0.42, lastAudibleVolume: 0.42, isMuted: false, isPlaying: false });
+
+  const clearFade = useCallback(() => {
+    if (fadeTimerRef.current !== null) {
+      clearInterval(fadeTimerRef.current);
+      fadeTimerRef.current = null;
+    }
+  }, []);
+
+  const applyOutputGain = useCallback((nextVolume: number, nextMuted: boolean) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const effectiveGain = getEffectiveBgmGain(nextVolume, nextMuted);
+    // iOS Safari에서는 HTMLMediaElement.volume 제어가 제한될 수 있어 출력은 GainNode가 담당한다.
+    audio.muted = false;
+    audio.volume = 1;
+
+    const context = audioContextRef.current;
+    const gainNode = gainNodeRef.current;
+    if (context && gainNode) {
+      gainNode.gain.cancelScheduledValues(context.currentTime);
+      gainNode.gain.setValueAtTime(effectiveGain, context.currentTime);
+    } else {
+      audio.volume = effectiveGain;
+    }
+  }, []);
 
   useEffect(() => {
     const audio = new Audio(BGM_URL);
     audio.loop = true;
-    audio.volume = 0;
+    audio.volume = 1;
     audio.preload = "auto";
     audioRef.current = audio;
     audio.load();
-    return () => { audio.pause(); audio.src = ""; };
-  }, []);
 
-  // startBgm: 처음 재생 시작 (페이드인)
+    try {
+      const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (AudioContextCtor) {
+        const context = new AudioContextCtor();
+        const source = context.createMediaElementSource(audio);
+        const gain = context.createGain();
+        gain.gain.value = 0;
+        source.connect(gain);
+        gain.connect(context.destination);
+        audioContextRef.current = context;
+        sourceNodeRef.current = source;
+        gainNodeRef.current = gain;
+      }
+    } catch {
+      // Web Audio를 지원하지 않는 환경은 audio.volume 폴백을 사용한다.
+    }
+
+    return () => {
+      clearFade();
+      audio.pause();
+      sourceNodeRef.current?.disconnect();
+      gainNodeRef.current?.disconnect();
+      void audioContextRef.current?.close();
+      audio.src = "";
+    };
+  }, [clearFade]);
+
   const startBgm = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio || stateRef.current.isPlaying) return;
     try {
-      audio.volume = 0;
+      clearFade();
+      if (audioContextRef.current?.state === "suspended") await audioContextRef.current.resume();
+      applyOutputGain(0, false);
       await audio.play();
       stateRef.current.isPlaying = true;
       stateRef.current.isMuted = false;
       setIsPlaying(true);
       setIsMuted(false);
-      // 2초에 걸쳐 목표 볼륨까지 페이드인
       const target = stateRef.current.volume;
       let v = 0;
       const step = target / 40;
-      const timer = setInterval(() => {
+      fadeTimerRef.current = setInterval(() => {
         v = Math.min(v + step, target);
-        if (audioRef.current) audioRef.current.volume = v;
-        if (v >= target) clearInterval(timer);
+        applyOutputGain(v, false);
+        if (v >= target) clearFade();
       }, 50);
     } catch {}
-  }, []);
+  }, [applyOutputGain, clearFade]);
 
   const stopBgm = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.volume = 0;
+    clearFade();
+    applyOutputGain(0, true);
     audio.pause();
     audio.currentTime = 0;
     stateRef.current.isPlaying = false;
     setIsPlaying(false);
     setIsMuted(false);
-  }, []);
+  }, [applyOutputGain, clearFade]);
 
-  // toggleMute: 뮤트/언뮤트 — 즉각 반영
   const toggleMute = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    clearFade();
     const newMuted = !stateRef.current.isMuted;
+    if (!newMuted && stateRef.current.volume === 0) {
+      stateRef.current.volume = stateRef.current.lastAudibleVolume;
+      setVolumeState(stateRef.current.lastAudibleVolume);
+    }
     stateRef.current.isMuted = newMuted;
-    // 즉각 볼륨 변경
-    audio.volume = newMuted ? 0 : stateRef.current.volume;
+    void audioContextRef.current?.resume();
+    applyOutputGain(stateRef.current.volume, newMuted);
     setIsMuted(newMuted);
-  }, []);
+  }, [applyOutputGain, clearFade]);
 
-  // setVolume: 슬라이더 — 즉각 반영
   const setVolume = useCallback((v: number) => {
-    const clamped = Math.max(0, Math.min(1, v));
+    clearFade();
+    const clamped = clampBgmVolume(v);
     stateRef.current.volume = clamped;
+    if (clamped > 0) stateRef.current.lastAudibleVolume = clamped;
     setVolumeState(clamped);
     const audio = audioRef.current;
     if (!audio) return;
-    // 뮤트 여부와 관계없이 항상 audio.volume 직접 설정
-    audio.volume = clamped;
-    // 슬라이더 0 → 뮤트 표시, 0 이상 → 언뮤트 표시
-    if (clamped === 0) {
-      stateRef.current.isMuted = true;
-      setIsMuted(true);
-    } else {
-      stateRef.current.isMuted = false;
-      setIsMuted(false);
-    }
-  }, []);
+    const nextMuted = clamped === 0;
+    stateRef.current.isMuted = nextMuted;
+    void audioContextRef.current?.resume();
+    applyOutputGain(clamped, nextMuted);
+    setIsMuted(nextMuted);
+  }, [applyOutputGain, clearFade]);
 
   return (
     <BgmContext.Provider value={{ startBgm, stopBgm, isMuted, isPlaying, toggleMute, volume, setVolume }}>
@@ -358,10 +414,13 @@ export function GalleryHeader() {
                   max={1}
                   step={0.02}
                   value={isMuted ? 0 : volume}
+                  onInput={(e) => setVolume(Number(e.currentTarget.value))}
                   onChange={(e) => {
                     const v = Number(e.target.value);
                     setVolume(v);
                   }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
                   style={{
                     width: "100%",
                     height: "20px",
